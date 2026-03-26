@@ -1,0 +1,1801 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Decision Compass</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+<style>
+:root{
+  --bg:#0F1923;--bg2:#16212E;--bg3:#1E2D3D;
+  --sf:#1A2535;--sf2:#212F42;--sf3:#243246;
+  --bd:#2A3D52;--bd2:#324860;
+  --gd:#D4A843;--gd2:#E8C06A;--gd3:#F5D98A;--gd-dk:#A07822;--gd-bg:rgba(212,168,67,.1);
+  --tx:#E8EDF5;--tx2:#9BAEC4;--tx3:#6B7F99;
+  --ok:#2ECC71;--ok-bg:rgba(46,204,113,.12);--ok-bd:rgba(46,204,113,.35);
+  --wn:#E87040;--wn-bg:rgba(232,112,64,.12);--wn-bd:rgba(232,112,64,.35);
+  --inf:#4A9EE0;--inf-bg:rgba(74,158,224,.12);--inf-bd:rgba(74,158,224,.35);
+  --er:#E05060;--er-bg:rgba(224,80,96,.12);
+  --r:14px;--rs:8px;--rx:100px;
+  --s1:0 2px 12px rgba(0,0,0,.3);--s2:0 8px 32px rgba(0,0,0,.45);
+  --fn:'Plus Jakarta Sans',sans-serif;--fh:'Instrument Serif',serif;
+  --tr:.2s ease;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:var(--fn);background:var(--bg);color:var(--tx);min-height:100vh;font-size:14px;line-height:1.6;-webkit-font-smoothing:antialiased}
+[dir=rtl]{font-family:'Segoe UI',Tahoma,var(--fn)}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--bd2);border-radius:3px}
+.sc{display:none;min-height:100vh;padding-bottom:80px;animation:fadeUp .3s ease}
+.sc.on{display:block}
+@keyframes fadeUp{from{opacity:.3;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+/* TOPBAR */
+.topbar{background:var(--bg2);border-bottom:1px solid var(--bd);height:54px;display:flex;align-items:center;justify-content:space-between;padding:0 22px;position:sticky;top:0;z-index:200;box-shadow:0 1px 0 var(--bd)}
+.logo{display:flex;align-items:center;gap:9px;text-decoration:none;cursor:pointer}
+.logo-gem{width:30px;height:30px;background:linear-gradient(135deg,var(--gd),var(--gd-dk));border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 0 10px rgba(212,168,67,.25)}
+.logo-gem svg{width:15px;height:15px;fill:white}
+.logo-name{font-family:var(--fh);font-size:17px;color:var(--tx)}
+.logo-name b{color:var(--gd)}
+.tr{display:flex;align-items:center;gap:5px}
+.lb{padding:4px 10px;border:1px solid var(--bd2);background:transparent;color:var(--tx3);border-radius:20px;cursor:pointer;font-size:11px;font-weight:700;font-family:var(--fn);transition:var(--tr);letter-spacing:.4px}
+.lb.on{background:var(--gd);border-color:var(--gd);color:var(--bg)}
+.lb:hover:not(.on){border-color:var(--gd2);color:var(--gd2)}
+
+/* PROGRESS */
+.ptrack{height:2px;background:var(--bd);position:sticky;top:54px;z-index:199}
+.pfill{height:100%;background:linear-gradient(90deg,var(--gd-dk),var(--gd2));transition:width .6s cubic-bezier(.4,0,.2,1)}
+
+/* PILLS */
+.pills{display:flex;align-items:center;overflow-x:auto;padding:20px 22px 0;max-width:960px;margin:0 auto;scrollbar-width:none}
+.pills::-webkit-scrollbar{display:none}
+.pill{display:flex;align-items:center;gap:6px;flex-shrink:0}
+.pdot{width:24px;height:24px;border-radius:50%;background:var(--bd2);color:var(--tx3);font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .3s}
+.pdot.done{background:var(--ok);color:white}
+.pdot.now{background:var(--gd);color:var(--bg);box-shadow:0 0 0 3px var(--gd-bg)}
+.plbl{font-size:11px;font-weight:600;color:var(--tx3);white-space:nowrap}
+.plbl.now{color:var(--gd);font-weight:800}
+.plbl.done{color:var(--ok)}
+.pline{width:24px;height:1px;background:var(--bd2);flex-shrink:0;margin:0 2px}
+
+/* PAGE */
+.page{max-width:960px;margin:0 auto;padding:26px 22px 0}
+.pgh{font-family:var(--fh);font-size:clamp(21px,4vw,28px);color:var(--tx);font-weight:400;letter-spacing:-.4px;margin-bottom:4px;line-height:1.2}
+.pgh em{color:var(--gd);font-style:italic}
+.pgs{color:var(--tx2);font-size:13px;margin-bottom:24px;line-height:1.65}
+
+/* CARD */
+.card{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);padding:20px;margin-bottom:16px}
+.card-hd{font-weight:700;color:var(--tx2);font-size:11px;margin-bottom:13px;display:flex;align-items:center;gap:7px;text-transform:uppercase;letter-spacing:.7px}
+.card-hd svg{opacity:.5;flex-shrink:0}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:10px 20px;border-radius:var(--rs);font-weight:700;font-size:13px;cursor:pointer;border:none;transition:all .2s;font-family:var(--fn);white-space:nowrap;letter-spacing:.1px}
+.btn:active{transform:scale(.98)}
+.btn-gold{background:linear-gradient(135deg,var(--gd),var(--gd-dk));color:var(--bg)}
+.btn-gold:hover{box-shadow:0 4px 18px rgba(212,168,67,.3);transform:translateY(-1px)}
+.btn-soft{background:var(--sf2);border:1px solid var(--bd);color:var(--tx2)}
+.btn-soft:hover{border-color:var(--tx2);color:var(--tx)}
+.btn-ghost{background:transparent;border:1px solid var(--bd);color:var(--tx3)}
+.btn-ghost:hover{border-color:var(--tx2);color:var(--tx2)}
+.btn-sm{padding:5px 12px;font-size:11.5px;border-radius:6px}
+.btn-xs{padding:3px 9px;font-size:10.5px;border-radius:5px}
+.nav{display:flex;gap:9px;margin-top:26px;flex-wrap:wrap;align-items:center}
+.ml{margin-left:auto}
+[dir=rtl] .ml{margin-left:0;margin-right:auto}
+
+/* FORMS */
+.fg{margin-bottom:14px}
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.flbl{font-size:11px;font-weight:800;color:var(--tx2);margin-bottom:5px;display:flex;align-items:center;gap:4px;text-transform:uppercase;letter-spacing:.6px}
+.tipbtn{width:15px;height:15px;border-radius:50%;background:var(--inf-bg);color:var(--inf);font-size:9px;font-weight:900;border:1px solid var(--inf-bd);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;transition:var(--tr)}
+.tipbtn:hover{background:var(--inf);color:white}
+input[type=text],input[type=number],select{width:100%;padding:9px 11px;border:1.5px solid var(--bd);border-radius:var(--rs);font-family:var(--fn);font-size:13px;color:var(--tx);background:var(--sf2);transition:border-color var(--tr);outline:none;-webkit-appearance:none}
+/* Fix: force OS-rendered dropdown options to use our dark background so text is never white-on-white */
+select option{background:#1A2535;color:#E8EDF5}
+select option:hover,select option:checked{background:#2A3D52;color:#E8EDF5}
+input:focus,select:focus{border-color:var(--gd)}
+input.err{border-color:var(--er)!important}
+.ng{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:8px}
+.niw{position:relative}
+.nilbl{position:absolute;left:9px;top:50%;transform:translateY(-50%);font-size:9px;font-weight:800;color:var(--tx3);pointer-events:none;letter-spacing:.4px}
+.niw input{padding-left:28px}
+
+/* BANNERS */
+.bnr{border-radius:var(--rs);padding:10px 13px;font-size:12.5px;margin-bottom:13px;display:flex;gap:8px;align-items:flex-start;line-height:1.65}
+.bnr svg{flex-shrink:0;margin-top:1px}
+.bi{background:var(--inf-bg);color:var(--inf);border:1px solid var(--inf-bd)}
+.bw{background:var(--wn-bg);color:var(--wn);border:1px solid var(--wn-bd)}
+.bo{background:var(--ok-bg);color:var(--ok);border:1px solid var(--ok-bd)}
+.bg{background:var(--gd-bg);color:var(--gd2);border:1px solid rgba(212,168,67,.3)}
+.be{background:var(--er-bg);color:var(--er);border:1px solid rgba(224,80,96,.3)}
+
+/* HERO */
+.hero{background:linear-gradient(150deg,var(--bg),var(--bg2) 50%,var(--bg3));min-height:290px;display:flex;align-items:center;justify-content:center;text-align:center;padding:52px 20px;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;top:-60px;right:-60px;width:350px;height:350px;background:radial-gradient(circle,rgba(212,168,67,.07),transparent 60%)}
+.hero::after{content:'';position:absolute;bottom:-50px;left:-50px;width:280px;height:280px;background:radial-gradient(circle,rgba(74,158,224,.05),transparent 60%)}
+.hero-in{position:relative;z-index:1;max-width:560px}
+.hero h1{font-family:var(--fh);font-size:clamp(26px,6vw,44px);color:var(--tx);font-weight:400;letter-spacing:-.8px;line-height:1.1;margin-bottom:12px}
+.hero h1 em{color:var(--gd);font-style:italic}
+.hero p{color:var(--tx2);font-size:14px;line-height:1.8;margin-bottom:26px;max-width:440px;margin-left:auto;margin-right:auto}
+.htag{display:inline-flex;align-items:center;gap:6px;background:var(--gd-bg);border:1px solid rgba(212,168,67,.28);color:var(--gd2);padding:4px 13px;border-radius:20px;font-size:10px;font-weight:800;letter-spacing:1px;margin-bottom:18px;text-transform:uppercase}
+.tstrip{display:flex;justify-content:center;gap:20px;flex-wrap:wrap;margin-top:18px}
+.ti{display:flex;align-items:center;gap:5px;color:var(--tx3);font-size:11px}
+.ti svg{color:var(--ok);opacity:.8}
+
+/* METHOD CARDS */
+.mgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:13px;margin:18px 0}
+.mc{background:var(--sf);border:1.5px solid var(--bd);border-radius:var(--r);padding:20px;cursor:pointer;transition:all .25s;position:relative}
+.mc:hover{border-color:var(--gd);transform:translateY(-2px);box-shadow:0 6px 24px rgba(212,168,67,.1)}
+.mc.sel{background:linear-gradient(140deg,var(--sf3),var(--bg3));border-color:var(--gd)}
+.mc.feat{border-color:rgba(212,168,67,.4)}
+.mc-ico{width:36px;height:36px;border-radius:9px;background:var(--gd-bg);border:1px solid rgba(212,168,67,.2);display:flex;align-items:center;justify-content:center;margin-bottom:12px}
+.mc-ico svg{width:18px;height:18px;fill:var(--gd)}
+.mc h3{font-size:14.5px;font-weight:800;margin-bottom:5px;color:var(--tx)}
+.mc p{font-size:11.5px;color:var(--tx2);line-height:1.6}
+.mc.sel p{color:var(--tx)}
+.mc-badge{position:absolute;top:11px;right:11px;background:var(--gd);color:var(--bg);font-size:9px;font-weight:900;padding:2px 7px;border-radius:20px;letter-spacing:.5px}
+.mc-chk{position:absolute;bottom:13px;right:13px;width:18px;height:18px;border-radius:50%;background:var(--gd);display:none;align-items:center;justify-content:center}
+.mc.sel .mc-chk{display:flex}
+@keyframes shakeCard{0%,100%{transform:translateX(0)}20%{transform:translateX(-5px)}40%{transform:translateX(5px)}60%{transform:translateX(-3px)}80%{transform:translateX(3px)}}
+
+/* HOW IT WORKS */
+.abox{background:linear-gradient(140deg,var(--sf2),var(--bg3));border:1px solid var(--bd);border-radius:var(--r);padding:20px;margin:14px 0;position:relative;overflow:hidden}
+.abox::before{content:'';position:absolute;top:-25px;right:-25px;width:130px;height:130px;background:radial-gradient(circle,rgba(212,168,67,.07),transparent 60%)}
+.abox h4{font-family:var(--fh);font-size:16px;color:var(--gd2);margin-bottom:9px;font-style:italic}
+.abox p{font-size:13px;line-height:1.8;color:var(--tx2)}
+.hgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin:13px 0}
+.hstep{background:var(--sf2);border:1px solid var(--bd);border-radius:var(--r);padding:15px;border-top:2px solid var(--gd)}
+.hstep .sn{font-family:var(--fh);font-size:28px;color:var(--gd);font-weight:400;line-height:1;margin-bottom:7px}
+.hstep h4{font-size:12.5px;font-weight:800;color:var(--tx);margin-bottom:5px}
+.hstep p{font-size:11.5px;color:var(--tx2);line-height:1.65}
+
+/* TEMPLATES */
+.trow{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.tchip{padding:5px 12px;border:1px solid var(--bd2);border-radius:var(--rx);cursor:pointer;font-size:11px;font-weight:600;background:transparent;color:var(--tx3);transition:all .2s;font-family:var(--fn)}
+.tchip:hover{border-color:var(--gd2);color:var(--gd2)}
+.tchip.on{border-color:var(--gd);background:var(--gd-bg);color:var(--gd2)}
+
+/* AHP MATRIX */
+.mxw{overflow-x:auto;border-radius:var(--rs);border:1px solid var(--bd)}
+.ahptbl{border-collapse:collapse;width:100%;font-size:12px}
+.ahptbl th{background:var(--bg2);color:var(--tx2);padding:8px 10px;font-size:9.5px;font-weight:800;text-align:center;white-space:nowrap;letter-spacing:.5px;border:1px solid var(--bd)}
+.ahptbl th:first-child{text-align:left;min-width:100px}
+.ahptbl td{padding:4px 3px;border:1px solid var(--bd);text-align:center;vertical-align:middle;background:var(--sf)}
+.cdiag{background:var(--gd-bg)!important;font-weight:900;color:var(--gd);font-size:14px}
+.cauto{background:var(--sf2)!important;color:var(--tx3);font-size:11px;font-style:italic;padding:5px 7px!important;min-width:65px}
+.ahpsel{width:100%;min-width:148px;padding:5px 6px;font-size:11px;border-radius:6px;border:1px solid var(--bd);font-family:var(--fn);background:var(--sf2);color:var(--tx);cursor:pointer;transition:border-color var(--tr)}
+.ahpsel:focus{border-color:var(--gd);outline:none}
+.ahpsel.flagged{border-color:var(--wn)!important;background:var(--wn-bg)!important;animation:fpulse .9s ease 2}
+@keyframes fpulse{0%,100%{box-shadow:none}50%{box-shadow:0 0 0 3px rgba(232,112,64,.28)}}
+
+/* SAATY */
+.strack{height:8px;border-radius:4px;background:linear-gradient(to right,#2ECC71,#D4A843,#E87040);margin:10px 0 5px}
+.snums{display:flex;justify-content:space-between;font-size:9px;font-weight:800;color:var(--tx3);padding:0 2px}
+.scards{display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:7px;margin-top:10px}
+.sc-it{background:var(--sf2);border:1px solid var(--bd);border-radius:var(--rs);padding:10px 12px}
+.sc-v{font-family:var(--fh);font-size:20px;color:var(--tx);margin-bottom:2px}
+.sc-m{font-size:11.5px;font-weight:700;color:var(--tx);margin-bottom:2px}
+.sc-e{font-size:11px;color:var(--tx3);font-style:italic;line-height:1.5}
+
+/* CR */
+.crwrap{margin-top:13px}
+.crbox{display:flex;align-items:flex-start;gap:11px;padding:13px 15px;border-radius:var(--rs);border:1px solid var(--bd);transition:all .3s}
+.crbox.pend{background:var(--sf2)}
+.crbox.ok{background:var(--ok-bg);border-color:var(--ok-bd)}
+.crbox.bad{background:var(--wn-bg);border-color:var(--wn-bd)}
+.crico{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px;font-weight:900}
+.crico.pend{background:var(--bd2);color:var(--tx3)}
+.crico.ok{background:var(--ok);color:white}
+.crico.bad{background:var(--wn);color:white}
+.crnum{font-family:var(--fh);font-size:19px;color:var(--tx)}
+.crlbl{font-size:12px;color:var(--tx2);margin-top:2px}
+.crtips{margin-top:11px;padding-top:11px;border-top:1px solid var(--wn-bd)}
+.crth{font-size:12px;font-weight:800;color:var(--wn);margin-bottom:7px;display:flex;align-items:center;gap:5px}
+.fixrow{background:var(--sf2);border:1px solid var(--wn-bd);border-radius:7px;padding:9px 12px;margin-bottom:6px;font-size:12px;line-height:1.75;color:var(--tx2)}
+.fixrow strong{color:var(--tx)}
+.tgc{background:var(--wn-bg);color:var(--wn);padding:1px 7px;border-radius:4px;font-weight:800;font-size:11px;display:inline-block}
+.tgs{background:var(--ok-bg);color:var(--ok);padding:1px 7px;border-radius:4px;font-weight:800;font-size:11px;display:inline-block}
+
+/* WEIGHTS DISPLAY */
+.wgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;margin:11px 0}
+.wcard{background:var(--sf2);border:1px solid var(--bd);border-radius:var(--rs);padding:12px;text-align:center}
+.wlbl{font-size:10px;color:var(--tx3);margin-bottom:4px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wpct{font-family:var(--fh);font-size:20px;color:var(--gd)}
+.wbar{background:var(--bd);border-radius:3px;height:3px;margin-top:6px;overflow:hidden}
+.wfill{height:100%;background:var(--gd);border-radius:3px;transition:width .7s cubic-bezier(.4,0,.2,1)}
+
+/* DATA TABLE */
+.dtw{overflow-x:auto;border-radius:var(--rs);border:1px solid var(--bd)}
+.dttbl{border-collapse:collapse;width:100%;font-size:12.5px}
+.dttbl th{background:var(--bg2);color:var(--tx2);padding:8px 10px;font-size:9.5px;font-weight:800;text-align:center;white-space:nowrap;letter-spacing:.5px;border:1px solid var(--bd)}
+.dttbl th:first-child{text-align:left}
+.dttbl td{padding:6px 7px;border:1px solid var(--bd);text-align:center;vertical-align:middle;background:var(--sf)}
+.dttbl tbody tr:hover td{background:var(--sf2)}
+.dimp td{background:var(--gd-bg)!important}
+.impsel{width:76px;padding:5px 5px;font-size:11px;border-radius:5px;border:1px solid var(--bd);font-family:var(--fn);background:var(--sf2);color:var(--tx);cursor:pointer}
+.minp{width:80px;padding:5px 6px;font-size:13px;border-radius:6px;border:1.5px solid var(--bd);text-align:center;font-family:var(--fh);font-weight:600;color:var(--tx);background:var(--sf2)}
+.minp:focus{border-color:var(--gd);outline:none;box-shadow:0 0 0 2px rgba(212,168,67,.1)}
+.minp.err{border-color:var(--er)}
+.impleg{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:11px 0}
+.ib{border-radius:var(--rs);padding:12px;border:1px solid}
+.ib-p{background:var(--ok-bg);border-color:var(--ok-bd)}
+.ib-m{background:var(--wn-bg);border-color:var(--wn-bd)}
+.ib h5{font-size:12px;font-weight:800;margin-bottom:5px}
+.ib-p h5{color:var(--ok)}
+.ib-m h5{color:var(--wn)}
+.ib ul{padding-left:13px;font-size:11.5px;color:var(--tx2);line-height:1.8}
+
+/* RESULTS */
+.podwrap{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);padding:26px 14px 14px;display:flex;align-items:flex-end;justify-content:center;gap:10px;margin-bottom:16px;position:relative;overflow:hidden}
+.podwrap::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--gd-dk),var(--gd2),var(--gd-dk))}
+.pod{text-align:center;flex-shrink:0}
+.pod-blk{border-radius:7px 7px 0 0;display:flex;align-items:center;justify-content:center;font-family:var(--fh);font-weight:400;color:white;font-size:18px;transition:transform .25s}
+.pod-blk:hover{transform:translateY(-3px)}
+.pod1 .pod-blk{width:90px;height:130px;background:linear-gradient(150deg,#E8C06A,#C4922A)}
+.pod2 .pod-blk{width:76px;height:94px;background:linear-gradient(150deg,#8A96A8,#5A6478)}
+.pod3 .pod-blk{width:68px;height:66px;background:linear-gradient(150deg,#B07840,#7A4820)}
+.pod-name{font-size:11px;font-weight:700;margin-top:7px;color:var(--tx);max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pod-sc{font-size:10px;color:var(--tx3);margin-top:2px}
+.rktbl{width:100%;border-collapse:collapse;font-size:13px}
+.rktbl th{background:var(--bg2);color:var(--tx2);padding:8px 12px;font-size:9.5px;font-weight:800;text-align:left;letter-spacing:.5px;border-bottom:1px solid var(--bd)}
+.rktbl td{padding:10px 12px;border-bottom:1px solid var(--bd)}
+.rktbl tbody tr:last-child td{border-bottom:none}
+.rktbl tbody tr:hover td{background:var(--sf2);transition:background var(--tr)}
+.rb{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;font-weight:900;font-size:10px}
+.rb1{background:var(--gd);color:var(--bg)}.rb2{background:#5A6478;color:white}.rb3{background:#7A4820;color:white}.rbn{background:var(--sf3);color:var(--tx3)}
+.srow{display:flex;align-items:center;gap:7px}
+.sbar{height:6px;background:linear-gradient(to right,var(--gd-dk),var(--gd2));border-radius:3px;min-width:3px;transition:width .9s cubic-bezier(.4,0,.2,1)}
+.snum{font-family:var(--fh);font-size:13px;color:var(--gd2);white-space:nowrap}
+.dtag{padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;display:inline-block}
+.dt1{background:var(--ok-bg);color:var(--ok);border:1px solid var(--ok-bd)}
+.dt2{background:var(--inf-bg);color:var(--inf);border:1px solid var(--inf-bd)}
+.dt3{background:var(--gd-bg);color:var(--gd2);border:1px solid rgba(212,168,67,.3)}
+.dt4{background:var(--sf3);color:var(--tx3);border:1px solid var(--bd)}
+.cgrid{display:grid;grid-template-columns:1fr 1fr;gap:15px;margin:15px 0}
+.cc{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);padding:16px}
+.cc h4{font-size:11px;font-weight:800;color:var(--tx2);margin-bottom:12px;text-transform:uppercase;letter-spacing:.6px}
+.cbox{position:relative;height:220px}
+
+/* STEP-BY-STEP */
+.stbox{background:var(--sf2);border-radius:var(--r);padding:18px;margin-top:12px}
+.sth{font-size:11px;font-weight:800;color:var(--gd);margin:14px 0 7px;text-transform:uppercase;letter-spacing:.8px;display:flex;align-items:center;gap:6px}
+.sth::before{content:'';display:block;width:2px;height:10px;background:var(--gd);border-radius:2px;flex-shrink:0}
+.sth:first-child{margin-top:0}
+[dir=rtl] .sth{flex-direction:row-reverse}
+.stbl{width:100%;border-collapse:collapse;font-size:11.5px;margin-bottom:11px}
+.stbl th{background:var(--bg);color:var(--tx2);padding:5px 8px;text-align:center;font-weight:700;font-size:9.5px;letter-spacing:.3px;border:1px solid var(--bd)}
+.stbl td{padding:5px 8px;border:1px solid var(--bd);text-align:center;background:var(--sf);color:var(--tx2)}
+.stbl td:first-child{text-align:left;font-weight:600;color:var(--tx);background:var(--sf2)}
+.stbl tbody tr:hover td{background:var(--sf3)}
+.fblock{background:var(--bg);border:1px solid var(--bd);border-radius:var(--rs);padding:11px 14px;margin:9px 0;font-size:12px;color:var(--tx2);line-height:1.85}
+.fblock b{color:var(--gd2);font-family:var(--fn)}
+
+/* REC */
+.recbox{background:linear-gradient(140deg,var(--sf),var(--bg3));border:1px solid var(--bd);border-radius:var(--r);padding:24px;margin-bottom:16px;position:relative;overflow:hidden}
+.recbox::before{content:'';position:absolute;top:-35px;right:-35px;width:180px;height:180px;background:radial-gradient(circle,rgba(212,168,67,.07),transparent 65%)}
+.recbox h3{font-family:var(--fh);font-size:18px;color:var(--gd2);margin-bottom:13px;display:flex;align-items:center;gap:8px;font-style:italic;position:relative}
+.recbody{font-size:13.5px;line-height:1.88;color:var(--tx2);position:relative}
+.recbody p{margin-bottom:11px}
+.recbody p:last-child{margin-bottom:0}
+.rechl{background:var(--gd-bg);border-left:2px solid var(--gd);padding:9px 13px;border-radius:0 6px 6px 0;margin:10px 0;font-size:13px;color:var(--tx)}
+[dir=rtl] .rechl{border-left:none;border-right:2px solid var(--gd);border-radius:6px 0 0 6px}
+.recdiv{height:1px;background:var(--bd);margin:13px 0}
+
+/* EXPORT */
+.expgrid{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-top:13px}
+.expcard{background:var(--sf2);border:1px solid var(--bd);border-radius:var(--r);padding:18px;cursor:pointer;transition:all .25s;text-align:center}
+.expcard:hover{border-color:var(--gd2);transform:translateY(-2px);box-shadow:var(--s2)}
+.expico{width:42px;height:42px;border-radius:10px;margin:0 auto 10px;display:flex;align-items:center;justify-content:center}
+.expcard h4{font-weight:800;color:var(--tx);font-size:13px;margin-bottom:3px}
+.expcard p{font-size:11px;color:var(--tx3);line-height:1.5}
+
+/* MODAL */
+#modal{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9999;display:none;align-items:center;justify-content:center;padding:14px;backdrop-filter:blur(5px)}
+#modal.on{display:flex}
+.mbox{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);padding:24px;max-width:450px;width:100%;box-shadow:var(--s2);position:relative;animation:pop .2s ease;max-height:90vh;overflow-y:auto}
+@keyframes pop{from{transform:scale(.92);opacity:0}to{transform:scale(1);opacity:1}}
+.mbox h3{font-family:var(--fh);color:var(--tx);font-size:17px;margin-bottom:9px;font-style:italic}
+.mbody{color:var(--tx2);line-height:1.75;font-size:13px}
+.mex{background:var(--gd-bg);border-radius:var(--rs);padding:10px 12px;font-size:12px;margin-top:10px;color:var(--gd2);border-left:2px solid var(--gd);line-height:1.65;white-space:pre-line}
+[dir=rtl] .mex{border-left:none;border-right:2px solid var(--gd)}
+.mclose{position:absolute;top:13px;right:13px;background:var(--sf2);border:1px solid var(--bd);border-radius:50%;width:26px;height:26px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--tx3);font-size:13px;transition:var(--tr)}
+.mclose:hover{background:var(--er-bg);color:var(--er)}
+[dir=rtl] .mclose{right:auto;left:13px}
+
+/* TOAST */
+#toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(55px);background:var(--sf2);border:1px solid var(--bd);color:var(--tx);padding:8px 16px;border-radius:30px;font-size:12.5px;font-weight:700;z-index:10000;transition:transform .35s cubic-bezier(.34,1.56,.64,1);pointer-events:none;white-space:nowrap;box-shadow:var(--s2)}
+#toast.show{transform:translateX(-50%) translateY(0)}
+#toast.ok{background:var(--ok-bg);border-color:var(--ok-bd);color:var(--ok)}
+#toast.err{background:var(--er-bg);border-color:rgba(224,80,96,.3);color:var(--er)}
+.div{height:1px;background:var(--bd);margin:16px 0}
+
+/* RESPONSIVE */
+@media(max-width:680px){
+  .fgrid,.cgrid,.expgrid,.mgrid,.impleg{grid-template-columns:1fr}
+  .hgrid{grid-template-columns:1fr 1fr}
+  .scards{grid-template-columns:1fr 1fr}
+  .page{padding:16px 13px 0}
+  .card{padding:14px}
+  .topbar{padding:0 13px}
+  .hero h1{font-size:24px}
+  .pod1 .pod-blk{width:74px;height:116px;font-size:15px}
+  .pod2 .pod-blk{width:62px;height:82px;font-size:13px}
+  .pod3 .pod-blk{width:56px;height:58px;font-size:12px}
+  .ng{grid-template-columns:1fr 1fr}
+  .pills{padding:14px 13px 0}
+}
+@media(max-width:420px){
+  .hgrid,.scards{grid-template-columns:1fr}
+  .lb{padding:3px 7px;font-size:10px}
+}
+</style>
+</head>
+<body>
+
+<svg style="display:none">
+<symbol id="ico-gem" viewBox="0 0 24 24"><path d="M2.7 10.3a2.41 2.41 0 0 0 0 3.41l7.59 7.59a2.41 2.41 0 0 0 3.41 0l7.59-7.59a2.41 2.41 0 0 0 0-3.41L13.7 2.71a2.41 2.41 0 0 0-3.41 0z" stroke="currentColor" stroke-width="1.8" fill="none"/></symbol>
+<symbol id="ico-scale" viewBox="0 0 24 24"><path d="M12 3v1M3 8l9-5 9 5M3 8l4 8a5 5 0 0 0 10 0l4-8M12 4v16" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+<symbol id="ico-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.8" fill="none"/><circle cx="12" cy="12" r="6" stroke="currentColor" stroke-width="1.8" fill="none"/><circle cx="12" cy="12" r="2" fill="currentColor"/></symbol>
+<symbol id="ico-layers" viewBox="0 0 24 24"><path d="m12 2 10 6.5L12 15 2 8.5z" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linejoin="round"/><path d="m2 15.5 10 6.5 10-6.5M2 11.5l10 6.5 10-6.5" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linejoin="round"/></symbol>
+<symbol id="ico-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.8" fill="none"/><path d="M12 16v-4M12 8h.01" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></symbol>
+<symbol id="ico-star" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" fill="currentColor"/></symbol>
+<symbol id="ico-check" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+<symbol id="ico-brain" viewBox="0 0 24 24"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15A2.5 2.5 0 0 1 9.5 22a2.5 2.5 0 0 1-2.38-1.72A2.5 2.5 0 0 1 4 18a2.5 2.5 0 0 1 .5-1.5A2.5 2.5 0 0 1 4 15a2.5 2.5 0 0 1 .5-1.5A2.5 2.5 0 0 1 4 12a2.5 2.5 0 0 1 2.5-2.5" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 2.5 2.5 2.5 2.5 0 0 0 2.38-1.72A2.5 2.5 0 0 0 20 18a2.5 2.5 0 0 0-.5-1.5A2.5 2.5 0 0 0 20 15a2.5 2.5 0 0 0-.5-1.5A2.5 2.5 0 0 0 20 12a2.5 2.5 0 0 0-2.5-2.5" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round"/></symbol>
+<symbol id="ico-alert" viewBox="0 0 24 24"><path d="m10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" stroke="currentColor" stroke-width="1.8" fill="none"/><line x1="12" y1="9" x2="12" y2="13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="12" y1="17" x2="12.01" y2="17" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+<symbol id="ico-xl" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3" stroke="#2ECC71" stroke-width="1.8" fill="none"/><path d="m8 9 4 6 4-6M8 15l4-6 4 6" stroke="#2ECC71" stroke-width="1.8" fill="none" stroke-linecap="round"/></symbol>
+<symbol id="ico-pdf" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="#E87040" stroke-width="1.8" fill="none"/><polyline points="14 2 14 8 20 8" stroke="#E87040" stroke-width="1.8" fill="none" stroke-linejoin="round"/><path d="M9 13h1a1 1 0 0 1 0 2H9v-2zm0 2v2M12 13v4M15 13h1.5a1.5 1.5 0 0 1 0 3H15" stroke="#E87040" stroke-width="1.8" fill="none" stroke-linecap="round"/></symbol>
+</svg>
+
+<!-- ══ WELCOME ══ -->
+<div class="sc on" id="s-welcome">
+<div class="topbar"><div class="logo" onclick="restart()"><div class="logo-gem"><svg><use href="#ico-gem"/></svg></div><span class="logo-name">Decision<b>Compass</b></span></div><div class="tr"><button class="lb on" onclick="setLang('en')">EN</button><button class="lb" onclick="setLang('fr')">FR</button><button class="lb" onclick="setLang('ar')">AR</button></div></div>
+<div class="ptrack"><div class="pfill" style="width:4%"></div></div>
+<div class="hero">
+  <div class="hero-in">
+    <div class="htag"><svg width="10" height="10" fill="currentColor" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span data-t="badge">AHP · TOPSIS · PROFESSIONAL</span></div>
+    <h1 data-t="hero_h">Make the <em>right choice,</em><br/>step by step</h1>
+    <p data-t="hero_p">A structured decision tool that guides you through comparing your options, weighing what matters most, and finding the best answer — with complete mathematical transparency.</p>
+    <div class="tstrip">
+      <div class="ti"><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg><span data-t="t1">No installation</span></div>
+      <div class="ti"><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg><span data-t="t2">Works offline</span></div>
+      <div class="ti"><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg><span data-t="t3">Export to PDF & Excel</span></div>
+      <div class="ti"><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg><span data-t="t4">All calculations shown</span></div>
+    </div>
+  </div>
+</div>
+<div class="page">
+  <p style="text-align:center;font-size:11px;font-weight:800;color:var(--tx3);text-transform:uppercase;letter-spacing:1.2px;margin:18px 0 4px" data-t="pick_m">Choose how you want to decide</p>
+  <div class="mgrid">
+    <div class="mc" id="mc-ahp" onclick="pickM('ahp')" tabindex="0">
+      <div class="mc-ico"><svg><use href="#ico-scale"/></svg></div>
+      <h3 data-t="m_ahp_h">AHP — Weigh your criteria</h3>
+      <p data-t="m_ahp_p">Compare your criteria two by two to determine how important each one is, then rank your options accordingly.</p>
+      <div class="mc-chk"><svg width="10" height="10" fill="none" stroke="white" stroke-width="3" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+    </div>
+    <div class="mc" id="mc-topsis" onclick="pickM('topsis')" tabindex="0">
+      <div class="mc-ico"><svg><use href="#ico-target"/></svg></div>
+      <h3 data-t="m_top_h">TOPSIS — Find the best fit</h3>
+      <p data-t="m_top_p">Enter your criteria weights directly, then find which option is closest to perfect and furthest from worst.</p>
+      <div class="mc-chk"><svg width="10" height="10" fill="none" stroke="white" stroke-width="3" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+    </div>
+    <div class="mc feat" id="mc-both" onclick="pickM('both')" tabindex="0">
+      <div class="mc-badge" data-t="rec">RECOMMENDED</div>
+      <div class="mc-ico"><svg><use href="#ico-layers"/></svg></div>
+      <h3 data-t="m_both_h">AHP + TOPSIS — Complete analysis</h3>
+      <p data-t="m_both_p">First weigh your criteria with AHP, then use those weights to rank your options with TOPSIS. The most rigorous method.</p>
+      <div class="mc-chk"><svg width="10" height="10" fill="none" stroke="white" stroke-width="3" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+    </div>
+  </div>
+  <div style="text-align:center;margin-top:5px"><button class="btn btn-gold" onclick="goHow()"><span data-t="start">Get Started</span><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></button></div>
+</div>
+</div>
+
+<!-- ══ HOW ══ -->
+<div class="sc" id="s-how">
+<div class="topbar"><div class="logo" onclick="restart()"><div class="logo-gem"><svg><use href="#ico-gem"/></svg></div><span class="logo-name">Decision<b>Compass</b></span></div><div class="tr"><button class="lb on" onclick="setLang('en')">EN</button><button class="lb" onclick="setLang('fr')">FR</button><button class="lb" onclick="setLang('ar')">AR</button></div></div>
+<div class="ptrack"><div class="pfill" style="width:14%"></div></div>
+<div class="page">
+  <div class="pills" id="pills-how"></div>
+  <p class="pgh" id="how-h">How it works</p>
+  <p class="pgs" data-t="how_sub">A quick read — this will make every step ahead much easier</p>
+  <div id="how-body"></div>
+  <div class="nav"><button class="btn btn-ghost" onclick="nav('welcome')" data-t="back">Back</button><button class="btn btn-gold ml" onclick="nav('setup')"><span data-t="understood">I understand — Let's start</span><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></button></div>
+</div>
+</div>
+
+<!-- ══ SETUP ══ -->
+<div class="sc" id="s-setup">
+<div class="topbar"><div class="logo" onclick="restart()"><div class="logo-gem"><svg><use href="#ico-gem"/></svg></div><span class="logo-name">Decision<b>Compass</b></span></div><div class="tr"><button class="lb on" onclick="setLang('en')">EN</button><button class="lb" onclick="setLang('fr')">FR</button><button class="lb" onclick="setLang('ar')">AR</button></div></div>
+<div class="ptrack"><div class="pfill" style="width:26%"></div></div>
+<div class="page">
+  <div class="pills" id="pills-setup"></div>
+  <p class="pgh" data-t="s_h">Your Decision</p>
+  <p class="pgs" data-t="s_sub">Give your analysis a title and define what you are comparing</p>
+  <div class="card">
+    <div class="fg"><label class="flbl"><span data-t="lbl_ti">What decision are you making?</span><button class="tipbtn" onclick="showTip('title')">?</button></label><input type="text" id="inp-title" data-t-ph="ph_ti" placeholder="e.g. Choosing the best supplier for 2025"/></div>
+    <div class="fg"><label class="flbl" data-t="lbl_tpl">Use a ready-made template (optional)</label><div class="trow" id="tplrow"></div></div>
+  </div>
+  <div class="card">
+    <div class="fgrid">
+      <div class="fg"><label class="flbl"><span data-t="lbl_nc">How many factors to compare?</span><button class="tipbtn" onclick="showTip('nc')">?</button></label><select id="sel-nc" onchange="onNC()"></select></div>
+      <div class="fg"><label class="flbl"><span data-t="lbl_na">How many options to compare?</span><button class="tipbtn" onclick="showTip('na')">?</button></label><select id="sel-na" onchange="onNA()"></select></div>
+    </div>
+    <div id="warn-nc" class="bnr bw" style="display:none"><svg width="14" height="14"><use href="#ico-alert"/></svg><span data-t="warn_nc">With many factors, comparing them takes more time. We recommend grouping similar ones together if possible.</span></div>
+    <div class="fg"><label class="flbl"><span data-t="lbl_cn">Name your comparison factors</span><button class="tipbtn" onclick="showTip('cn')">?</button></label><div class="ng" id="gcn"></div></div>
+    <div class="fg" style="margin-bottom:0"><label class="flbl"><span data-t="lbl_an">Name your options</span><button class="tipbtn" onclick="showTip('an')">?</button></label><div class="ng" id="gan"></div></div>
+  </div>
+  <div class="nav"><button class="btn btn-ghost" onclick="nav('how')" data-t="back">Back</button><button class="btn btn-gold ml" onclick="goSetup()"><span data-t="next">Continue</span><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></button></div>
+</div>
+</div>
+
+<!-- ══ AHP ══ -->
+<div class="sc" id="s-ahp">
+<div class="topbar"><div class="logo" onclick="restart()"><div class="logo-gem"><svg><use href="#ico-gem"/></svg></div><span class="logo-name">Decision<b>Compass</b></span></div><div class="tr"><button class="lb on" onclick="setLang('en')">EN</button><button class="lb" onclick="setLang('fr')">FR</button><button class="lb" onclick="setLang('ar')">AR</button></div></div>
+<div class="ptrack"><div class="pfill" style="width:50%"></div></div>
+<div class="page">
+  <div class="pills" id="pills-ahp"></div>
+  <p class="pgh" data-t="a_h">Which factors matter most?</p>
+  <p class="pgs" data-t="a_sub">Compare each pair of factors: if you had to choose, which would you prioritize — and by how much?</p>
+  <div class="card">
+    <div class="card-hd"><svg width="13" height="13"><use href="#ico-info"/></svg><span data-t="sc_hd">How to read the importance scale</span></div>
+    <div class="strack"></div>
+    <div class="snums"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span></div>
+    <div class="scards" id="saaty-grid"></div>
+    <div class="bnr bg" style="margin-top:11px;margin-bottom:0"><svg width="13" height="13"><use href="#ico-info"/></svg><span data-t="sc_note">Each dropdown shows exactly which factor wins. To say Factor B matters more than Factor A, select a fraction (1/2, 1/3…) — the dropdown will label it clearly.</span></div>
+  </div>
+  <div class="card">
+    <div class="bnr bi" style="margin-bottom:11px"><svg width="13" height="13"><use href="#ico-info"/></svg><span data-t="a_fill">Fill the upper half of the table only. Each row already knows its own row = 1. The lower half is auto-calculated as the mathematical opposite.</span></div>
+    <div class="mxw" id="ahp-mx"></div>
+    <div class="crwrap" id="crwrap"></div>
+  </div>
+  <div class="nav"><button class="btn btn-ghost" onclick="nav('setup')" data-t="back">Back</button><button class="btn btn-gold ml" onclick="procAHP()"><span data-t="a_next">I'm done — Calculate weights</span><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></button></div>
+</div>
+</div>
+
+<!-- ══ DATA ══ -->
+<div class="sc" id="s-data">
+<div class="topbar"><div class="logo" onclick="restart()"><div class="logo-gem"><svg><use href="#ico-gem"/></svg></div><span class="logo-name">Decision<b>Compass</b></span></div><div class="tr"><button class="lb on" onclick="setLang('en')">EN</button><button class="lb" onclick="setLang('fr')">FR</button><button class="lb" onclick="setLang('ar')">AR</button></div></div>
+<div class="ptrack"><div class="pfill" style="width:74%"></div></div>
+<div class="page">
+  <div class="pills" id="pills-data"></div>
+  <p class="pgh" data-t="d_h">Rate your options</p>
+  <p class="pgs" data-t="d_sub">For each option, enter its real value on every factor — use any consistent unit</p>
+  <div class="card">
+    <div class="card-hd"><svg width="13" height="13"><use href="#ico-info"/></svg><span data-t="imp_hd">Does a higher value mean better or worse?</span></div>
+    <div class="impleg">
+      <div class="ib ib-p"><h5 data-t="ip_h">( + ) Higher is better</h5><ul id="ip-list"></ul></div>
+      <div class="ib ib-m"><h5 data-t="im_h">( − ) Lower is better</h5><ul id="im-list"></ul></div>
+    </div>
+  </div>
+  <div class="card">
+    <div id="warea" style="margin-bottom:13px"></div>
+    <div class="bnr bi" style="margin-bottom:11px"><svg width="13" height="13"><use href="#ico-info"/></svg><span data-t="d_hint">Use actual numbers — a price, a rating out of 10, a number of days. Just be consistent: if you score one option out of 10, score them all out of 10.</span></div>
+    <div class="dtw"><table class="dttbl" id="dtbl"></table></div>
+    <div id="derr" class="bnr be" style="display:none;margin-top:10px;margin-bottom:0"><svg width="13" height="13"><use href="#ico-alert"/></svg><span id="derr-msg"></span></div>
+  </div>
+  <div class="nav"><button class="btn btn-ghost" onclick="dataBack()" data-t="back">Back</button><button class="btn btn-gold ml" onclick="doCalc()"><svg width="13" height="13"><use href="#ico-star"/></svg><span data-t="d_calc">See my results</span></button></div>
+</div>
+</div>
+
+<!-- ══ RESULTS ══ -->
+<div class="sc" id="s-results">
+<div class="topbar"><div class="logo" onclick="restart()"><div class="logo-gem"><svg><use href="#ico-gem"/></svg></div><span class="logo-name">Decision<b>Compass</b></span></div><div class="tr"><button class="lb on" onclick="setLang('en')">EN</button><button class="lb" onclick="setLang('fr')">FR</button><button class="lb" onclick="setLang('ar')">AR</button></div></div>
+<div class="ptrack"><div class="pfill" style="width:100%"></div></div>
+<div class="page">
+  <p class="pgh" data-t="r_h">Your Ranking</p>
+  <p class="pgs" id="r-sub"></p>
+  <div id="podarea"></div>
+  <div id="ahp-wsec" style="display:none" class="card">
+    <div class="card-hd"><svg width="13" height="13"><use href="#ico-scale"/></svg><span data-t="w_hd">Importance of each factor (calculated from your comparisons)</span></div>
+    <div class="wgrid" id="wdisp"></div>
+    <div id="cr-resdisplay"></div>
+  </div>
+  <div class="cgrid">
+    <div class="cc"><h4 data-t="ch_sc">Final Scores</h4><div class="cbox"><canvas id="barChart"></canvas></div></div>
+    <div class="cc"><h4 data-t="ch_rad">Performance overview</h4><div class="cbox"><canvas id="radChart"></canvas></div></div>
+  </div>
+  <div class="card" id="rkcard">
+    <div class="card-hd"><svg width="13" height="13"><use href="#ico-star"/></svg><span data-t="rk_hd">Complete Ranking</span></div>
+    <div style="overflow-x:auto"><table class="rktbl" id="rktbl"></table></div>
+  </div>
+  <div class="recbox">
+    <h3><svg width="17" height="17"><use href="#ico-brain"/></svg><span data-t="rec_hd">Summary & Recommendation</span></h3>
+    <div class="recbody" id="recbody"></div>
+  </div>
+  <div class="card">
+    <div class="card-hd"><svg width="13" height="13"><use href="#ico-layers"/></svg><span data-t="st_hd">Step-by-Step Calculations</span><button class="btn btn-xs btn-ghost ml" id="stbtn" onclick="toggleSt()" data-t="show">Show</button></div>
+    <div id="stbody" style="display:none"></div>
+  </div>
+  <div class="card">
+    <div class="card-hd"><svg width="13" height="13"><use href="#ico-layers"/></svg><span data-t="ex_hd">Export your analysis</span></div>
+    <p style="font-size:12px;color:var(--tx3);margin-bottom:0" data-t="ex_sub">Professional report — ready for academic or work use</p>
+    <div class="expgrid">
+      <div class="expcard" onclick="doXL()"><div class="expico" style="background:rgba(46,204,113,.1)"><svg width="22" height="22"><use href="#ico-xl"/></svg></div><h4 data-t="xl_h">Excel File</h4><p data-t="xl_p">All matrices, weights, calculations and ranking on separate sheets</p></div>
+      <div class="expcard" onclick="doPDF()"><div class="expico" style="background:rgba(232,112,64,.1)"><svg width="22" height="22"><use href="#ico-pdf"/></svg></div><h4 data-t="pdf_h">PDF Report</h4><p data-t="pdf_p">Complete report with charts and recommendation — thesis-ready</p></div>
+    </div>
+    <div style="text-align:center;margin-top:16px"><button class="btn btn-ghost" onclick="restart()" data-t="restart">Start a new analysis</button></div>
+  </div>
+</div>
+</div>
+
+<div id="modal" onclick="mbg(event)"><div class="mbox"><button class="mclose" onclick="closeM()">&#10005;</button><h3 id="mh"></h3><div class="mbody" id="mb"></div></div></div>
+<div id="toast"></div>
+
+<script>
+'use strict';
+// ═══════════════════════════ STATE ═══════════════════════════
+const S={
+  lang:'en', method:'both',
+  nC:3, nA:3, criteria:[], alts:[], title:'',
+  // AHP
+  M:[], GM:[], W:[], A3:[], A4:[], lmax:0, CI:0, CR:0,
+  // Data
+  impacts:[], raw:[], weights:[],
+  // Results — unified format
+  R:{ method:'', rankings:[], norm:[], wNorm:[], iBest:[], iWorst:[], dPlus:[], dMinus:[], closeness:[], wsmNorm:[], wsmScores:[] }
+};
+let BC=null, RC=null;
+
+// ═══════════════════════════ TRANSLATIONS ═══════════════════════════
+const T={
+en:{
+  badge:'AHP · TOPSIS · PROFESSIONAL',
+  hero_h:'Make the right choice,\nstep by step',
+  hero_p:'A structured decision tool that guides you through comparing your options, weighing what matters most, and finding the best answer — with complete mathematical transparency.',
+  t1:'No installation',t2:'Works offline',t3:'Export to PDF & Excel',t4:'All calculations shown',
+  rec:'RECOMMENDED',start:'Get Started',pick_m:'Choose how you want to decide',
+  m_ahp_h:'AHP — Weigh your criteria',m_ahp_p:'Compare your criteria two by two to determine how important each one is, then rank your options accordingly.',
+  m_top_h:'TOPSIS — Find the best fit',m_top_p:'Enter your criteria weights directly, then find which option is closest to perfect and furthest from worst.',
+  m_both_h:'AHP + TOPSIS — Complete analysis',m_both_p:'First weigh your criteria with AHP, then use those weights to rank your options with TOPSIS. The most rigorous method.',
+  how_sub:'A quick read — this will make every step ahead much easier',
+  understood:'I understand — Let\'s start',back:'Back',
+  s_h:'Your Decision',s_sub:'Give your analysis a title and define what you are comparing',
+  lbl_ti:'What decision are you making?',ph_ti:'e.g. Choosing the best supplier for 2025',
+  lbl_tpl:'Use a ready-made template (optional)',lbl_nc:'How many factors to compare?',lbl_na:'How many options to compare?',
+  lbl_cn:'Name your comparison factors',lbl_an:'Name your options',
+  warn_nc:'With many factors, comparing them takes more time. We recommend grouping similar ones together if possible.',
+  next:'Continue',
+  a_h:'Which factors matter most?',a_sub:'Compare each pair of factors: if you had to choose, which would you prioritize — and by how much?',
+  sc_hd:'How to read the importance scale',
+  sc_note:'Each dropdown shows exactly which factor wins. To say Factor B matters more than Factor A, select a fraction (1/2, 1/3…) — the dropdown will label it clearly.',
+  a_fill:'Fill the upper half of the table only. Each row already knows its own row = 1. The lower half is auto-calculated as the mathematical opposite.',
+  a_next:"I'm done — Calculate weights",
+  d_h:'Rate your options',d_sub:'For each option, enter its real value on every factor — use any consistent unit',
+  imp_hd:'Does a higher value mean better or worse?',
+  ip_h:'( + ) Higher is better',im_h:'( − ) Lower is better',
+  d_hint:'Use actual numbers — a price, a rating out of 10, a number of days. Just be consistent: if you score one option out of 10, score them all out of 10.',
+  d_calc:'See my results',
+  r_h:'Your Ranking',
+  w_hd:'Importance of each factor (calculated from your comparisons)',
+  ch_sc:'Final Scores',ch_rad:'Performance overview',
+  rk_hd:'Complete Ranking',rec_hd:'Summary & Recommendation',
+  st_hd:'Step-by-Step Calculations',show:'Show',hide:'Hide',
+  ex_hd:'Export your analysis',ex_sub:'Professional report — ready for academic or work use',
+  xl_h:'Excel File',xl_p:'All matrices, weights, calculations and ranking on separate sheets',
+  pdf_h:'PDF Report',pdf_p:'Complete report with charts and recommendation — thesis-ready',
+  restart:'Start a new analysis',
+  col_rk:'Rank',col_alt:'Option',col_sc:'Score',col_dec:'Result',
+  tag1:'Top Choice',tag2:'Strong Option',tag3:'Consider',tag4:'Lower Ranked',
+  w_auto:'Factor importance (from your comparisons):',w_man:'Set the importance of each factor (must add up to 100%):',
+  wok:'Total = {s}% ✓',werr:'Total = {s}% — must add up to 100%',
+  cr_p:'Complete the table to check consistency',
+  cr_ok:'Your comparisons are consistent (CR ≤ 0.10) — weights confirmed.',
+  cr_bad:'Comparisons are inconsistent (CR > 0.10) — see suggestions below.',
+  cr_fix_h:'What to change to fix consistency',
+  cr_curr:'Currently:',cr_sugg:'Change to:',cr_why:'This adjustment will make your comparisons more logical.',
+  s1_l:'Equal',s3_l:'Moderate',s5_l:'Strong',s7_l:'Very strong',s9_l:'Extreme',
+  s1_e:'Both matter equally',s3_e:'Price vs Delivery time',s5_e:'Price vs Flexibility',s7_e:'Price vs Support calls',s9_e:'Price vs Logo color',
+  ip1:'Quality / Service level',ip2:'Reliability / Flexibility',ip3:'Delivery speed',ip4:'Capacity / Coverage',
+  im1:'Cost / Price',im2:'Lead time / Waiting days',im3:'Error rate / Defects',im4:'Risk / Distance',
+  ts1:'Supplier Selection',ts2:'Warehouse Location',ts3:'3PL Provider',ts4:'Transport Mode',ts5:'Risk Assessment',
+  tg1:'Car Purchase',tg2:'Job / Internship',tg3:'Apartment Rental',tg4:'Software Tool',tg5:'University Choice',
+  ps:'Setup',pa:'Weigh factors',pd:'Rate options',pr:'Results',
+  e_empty:'Please fill in every cell before continuing.',
+  e_wsum:'The importance scores must add up to 100% (currently {s}%).',
+  e_zcol:'All values for "{c}" are zero — please enter real numbers.',
+  e_meth:'Please choose a method first.',
+  // Step-by-step (technical labels — only shown in the calculations drawer)
+  ahp_s1:'Step 1 — Geometric Mean per row:  GM_i = (a_i1 × a_i2 × … × a_in)^(1/n)',
+  ahp_s2:'Step 2 — Criterion Weights:  w_i = GM_i / Σ GM_i',
+  ahp_s3:'Step 3 — Weighted column sum (A3):  A3_i = Σ(a_ij × w_j)',
+  ahp_s4:'Step 4 — Consistency check (A4):  A4_i = A3_i / w_i',
+  ahp_s5:'Step 5 — Maximum eigenvalue:  λmax = Σ(A4_i) / n',
+  ahp_s6:'Step 6 — Consistency Index:  CI = (λmax − n) / (n − 1)',
+  ahp_s7:'Step 7 — Consistency Ratio:  CR = CI / RI(n)  →  Accept if CR ≤ 0.10',
+  ahp_wsm1:'Step 8 — Min-Max Normalization per column (direction-aware)',
+  ahp_wsm2:'Step 9 — Weighted Score:  score_i = Σ(normalized_ij × w_j)  →  rank descending',
+  tp_s1:'Step 1 — Euclidean Normalization:  r_ij = x_ij / √Σ(x_ij²)',
+  tp_s2:'Step 2 — Weighted Normalized Matrix:  v_ij = w_j × r_ij',
+  tp_s3:'Step 3 — Ideal Best (A+) and Ideal Worst (A−)',
+  tp_s4:'Step 4 — Distances:  D+_i = √Σ(v_ij−A+_j)²   D−_i = √Σ(v_ij−A−_j)²',
+  tp_s5:'Step 5 — Closeness Score:  Ci = D− / (D+ + D−)  →  rank descending',
+  col_gm:'GM_i',col_wi:'w_i',col_wp:'w_i (%)',col_a3:'A3_i',col_a4:'A4_i',
+  col_raw:'Raw value',col_norm:'Normalized',col_wscore:'Weighted score',
+  col_ib:'Ideal Best A+',col_iw:'Ideal Worst A−',col_dp:'D+',col_dm:'D−',col_ci:'Score Ci',
+  accept:'✓ Weights accepted',reject:'✗ Weights rejected — revise',
+},
+fr:{
+  badge:'AHP · TOPSIS · PROFESSIONNEL',
+  hero_h:'Prenez la bonne décision,\nétape par étape',
+  hero_p:'Un outil structuré pour comparer vos options, peser ce qui compte le plus et trouver la meilleure réponse — avec une transparence mathématique totale.',
+  t1:'Sans installation',t2:'Fonctionne hors ligne',t3:'Export PDF & Excel',t4:'Tous les calculs visibles',
+  rec:'RECOMMANDÉ',start:'Commencer',pick_m:'Choisissez votre méthode de décision',
+  m_ahp_h:'AHP — Pondérer vos critères',m_ahp_p:'Comparez vos critères deux par deux pour déterminer leur importance, puis classez vos options.',
+  m_top_h:'TOPSIS — Trouver le meilleur choix',m_top_p:'Entrez directement les poids des critères, puis trouvez l\'option la plus proche du parfait.',
+  m_both_h:'AHP + TOPSIS — Analyse complète',m_both_p:'D\'abord pondérez avec AHP, puis classez avec TOPSIS. La méthode la plus rigoureuse.',
+  how_sub:'À lire rapidement — chaque étape sera ensuite plus claire',
+  understood:'Compris — On commence',back:'Retour',
+  s_h:'Votre Décision',s_sub:'Nommez votre décision et définissez ce que vous comparez',
+  lbl_ti:'Quelle décision prenez-vous ?',ph_ti:'ex. Choisir le meilleur fournisseur pour 2025',
+  lbl_tpl:'Utiliser un modèle prêt (optionnel)',lbl_nc:'Combien de critères ?',lbl_na:'Combien d\'alternatives ?',
+  lbl_cn:'Nommez vos critères',lbl_an:'Nommez vos alternatives',
+  warn_nc:'Avec beaucoup de critères, les comparaisons prennent plus de temps. Regroupez les critères similaires si possible.',
+  next:'Continuer',
+  a_h:'Quels critères sont les plus importants ?',a_sub:'Comparez chaque paire : si vous deviez choisir, lequel privilégieriez-vous et de combien ?',
+  sc_hd:'Comment lire l\'échelle d\'importance',
+  sc_note:'Chaque liste déroulante indique clairement lequel est favorisé. Pour dire que B est plus important qu\'A, sélectionnez une fraction (1/2, 1/3…).',
+  a_fill:'Remplissez uniquement la moitié supérieure. La diagonale = 1. La moitié inférieure se calcule automatiquement.',
+  a_next:'C\'est fait — Calculer les poids',
+  d_h:'Évaluez vos options',d_sub:'Pour chaque option, entrez sa valeur réelle sur chaque critère — utilisez n\'importe quelle unité cohérente',
+  imp_hd:'Une valeur plus élevée signifie-t-elle mieux ou moins bien ?',
+  ip_h:'( + ) Plus élevé = mieux',im_h:'( − ) Plus bas = mieux',
+  d_hint:'Utilisez des vrais chiffres — un prix, une note sur 10, un nombre de jours. Restez cohérent pour chaque critère.',
+  d_calc:'Voir mes résultats',
+  r_h:'Votre Classement',
+  w_hd:'Importance de chaque critère (calculée depuis vos comparaisons)',
+  ch_sc:'Scores finaux',ch_rad:'Vue d\'ensemble des performances',
+  rk_hd:'Classement complet',rec_hd:'Résumé & Recommandation',
+  st_hd:'Calculs étape par étape',show:'Afficher',hide:'Masquer',
+  ex_hd:'Exporter votre analyse',ex_sub:'Rapport professionnel — prêt pour usage académique ou professionnel',
+  xl_h:'Fichier Excel',xl_p:'Toutes les matrices, poids, calculs et classement sur feuilles séparées',
+  pdf_h:'Rapport PDF',pdf_p:'Rapport complet avec graphiques et recommandation — prêt pour mémoire',
+  restart:'Nouvelle analyse',
+  col_rk:'Rang',col_alt:'Option',col_sc:'Score',col_dec:'Résultat',
+  tag1:'Meilleur choix',tag2:'Bonne option',tag3:'À considérer',tag4:'Moins bien classé',
+  w_auto:'Importance de chaque critère (issue de vos comparaisons) :',w_man:'Définissez l\'importance de chaque critère (doit totaliser 100%) :',
+  wok:'Total = {s}% ✓',werr:'Total = {s}% — doit totaliser 100%',
+  cr_p:'Complétez le tableau pour vérifier la cohérence',
+  cr_ok:'Vos comparaisons sont cohérentes (CR ≤ 0.10) — poids confirmés.',
+  cr_bad:'Comparaisons incohérentes (CR > 0.10) — voir suggestions ci-dessous.',
+  cr_fix_h:'Ce qu\'il faut changer pour corriger la cohérence',
+  cr_curr:'Actuellement :',cr_sugg:'Changer en :',cr_why:'Ce changement rendra vos comparaisons plus logiques.',
+  s1_l:'Égal',s3_l:'Modéré',s5_l:'Fort',s7_l:'Très fort',s9_l:'Extrême',
+  s1_e:'Les deux comptent pareil',s3_e:'Prix vs Délai de livraison',s5_e:'Prix vs Flexibilité',s7_e:'Prix vs Support',s9_e:'Prix vs Couleur du logo',
+  ip1:'Qualité / Niveau de service',ip2:'Fiabilité / Flexibilité',ip3:'Vitesse de livraison',ip4:'Capacité / Couverture',
+  im1:'Coût / Prix',im2:'Délai / Jours d\'attente',im3:'Taux d\'erreur / Défauts',im4:'Risque / Distance',
+  ts1:'Sélection Fournisseur',ts2:'Localisation Entrepôt',ts3:'Prestataire 3PL',ts4:'Mode de Transport',ts5:'Évaluation Risques',
+  tg1:'Achat Voiture',tg2:'Emploi / Stage',tg3:'Location Appartement',tg4:'Outil Logiciel',tg5:'Choix Université',
+  ps:'Config.',pa:'Pondérer',pd:'Évaluer',pr:'Résultats',
+  e_empty:'Veuillez remplir toutes les cellules avant de continuer.',
+  e_wsum:'Les importances doivent totaliser 100% (actuellement {s}%).',
+  e_zcol:'Toutes les valeurs de "{c}" sont zéro — entrez de vrais chiffres.',
+  e_meth:'Veuillez d\'abord choisir une méthode.',
+  ahp_s1:'Étape 1 — Moyenne géométrique par ligne :  GM_i = (a_i1 × a_i2 × … × a_in)^(1/n)',
+  ahp_s2:'Étape 2 — Poids des critères :  w_i = GM_i / Σ GM_i',
+  ahp_s3:'Étape 3 — Somme pondérée des colonnes (A3) :  A3_i = Σ(a_ij × w_j)',
+  ahp_s4:'Étape 4 — Vérification de cohérence (A4) :  A4_i = A3_i / w_i',
+  ahp_s5:'Étape 5 — Valeur propre maximale :  λmax = Σ(A4_i) / n',
+  ahp_s6:'Étape 6 — Indice de cohérence :  CI = (λmax − n) / (n − 1)',
+  ahp_s7:'Étape 7 — Ratio de cohérence :  CR = CI / RI(n)  →  Accepté si CR ≤ 0.10',
+  ahp_wsm1:'Étape 8 — Normalisation Min-Max par colonne (selon direction)',
+  ahp_wsm2:'Étape 9 — Score pondéré :  score_i = Σ(normalisé_ij × w_j)  →  classement décroissant',
+  tp_s1:'Étape 1 — Normalisation euclidienne :  r_ij = x_ij / √Σ(x_ij²)',
+  tp_s2:'Étape 2 — Matrice normalisée pondérée :  v_ij = w_j × r_ij',
+  tp_s3:'Étape 3 — Idéal positif (A+) et idéal négatif (A−)',
+  tp_s4:'Étape 4 — Distances :  D+_i = √Σ(v_ij−A+_j)²   D−_i = √Σ(v_ij−A−_j)²',
+  tp_s5:'Étape 5 — Coefficient de proximité :  Ci = D− / (D+ + D−)  →  classement décroissant',
+  col_gm:'GM_i',col_wi:'w_i',col_wp:'w_i (%)',col_a3:'A3_i',col_a4:'A4_i',
+  col_raw:'Valeur brute',col_norm:'Normalisée',col_wscore:'Score pondéré',
+  col_ib:'Idéal A+',col_iw:'Idéal A−',col_dp:'D+',col_dm:'D−',col_ci:'Score Ci',
+  accept:'✓ Poids acceptés',reject:'✗ Poids rejetés — à réviser',
+},
+ar:{
+  badge:'AHP · TOPSIS · احترافي',
+  hero_h:'اتخذ القرار الصحيح\nخطوة بخطوة',
+  hero_p:'أداة قرار منظمة ترشدك لمقارنة خياراتك وتحديد الأهم وإيجاد أفضل إجابة — بشفافية رياضية كاملة.',
+  t1:'بدون تثبيت',t2:'يعمل بدون إنترنت',t3:'تصدير PDF و Excel',t4:'جميع الحسابات مرئية',
+  rec:'موصى به',start:'ابدأ الآن',pick_m:'اختر طريقة اتخاذ القرار',
+  m_ahp_h:'AHP — وزِّن معاييرك',m_ahp_p:'قارن معاييرك اثنين اثنين لتحديد أهمية كل منها، ثم رتِّب خياراتك.',
+  m_top_h:'TOPSIS — ابحث عن أفضل خيار',m_top_p:'أدخل أوزان المعايير مباشرة، ثم ابحث عن الخيار الأقرب للمثالي.',
+  m_both_h:'AHP + TOPSIS — تحليل كامل',m_both_p:'أولاً وزِّن بـAHP، ثم رتِّب بـTOPSIS. الطريقة الأكثر دقة.',
+  how_sub:'اقرأها سريعاً — ستجعل كل خطوة أمامك أوضح',
+  understood:'فهمت — لنبدأ',back:'رجوع',
+  s_h:'قرارك',s_sub:'سمِّ تحليلك وحدد ما تقارنه',
+  lbl_ti:'ما القرار الذي تتخذه؟',ph_ti:'مثال: اختيار أفضل مورد لعام 2025',
+  lbl_tpl:'استخدم نموذجاً جاهزاً (اختياري)',lbl_nc:'كم عدد المعايير؟',lbl_na:'كم عدد الخيارات؟',
+  lbl_cn:'سمِّ معاييرك',lbl_an:'سمِّ خياراتك',
+  warn_nc:'مع معايير كثيرة يستغرق المقارنة وقتاً أطول. اقترح تجميع المعايير المتشابهة.',
+  next:'تابع',
+  a_h:'أي المعايير أكثر أهمية؟',a_sub:'قارن كل زوج من المعايير: لو كان عليك الاختيار، أيهما ستُقدِّم وبكم؟',
+  sc_hd:'كيف تقرأ مقياس الأهمية',
+  sc_note:'كل قائمة منسدلة تُظهر صراحةً أي المعيارين يُفضَّل. لقول أن B أهم من A، اختر كسراً (1/2، 1/3…).',
+  a_fill:'املأ النصف العلوي من الجدول فقط. القطر = 1 دائماً. النصف السفلي يُحسب تلقائياً.',
+  a_next:'انتهيت — احسب الأوزان',
+  d_h:'قيِّم خياراتك',d_sub:'لكل خيار، أدخل قيمته الحقيقية على كل معيار — استخدم أي وحدة متسقة',
+  imp_hd:'هل القيمة الأعلى أفضل أم أسوأ؟',
+  ip_h:'( + ) الأعلى أفضل',im_h:'( − ) الأقل أفضل',
+  d_hint:'استخدم أرقاماً حقيقية — سعر، تقييم من 10، عدد أيام. كن متسقاً: إذا قيّمت خياراً من 10، قيِّمهم جميعاً من 10.',
+  d_calc:'اعرض نتائجي',
+  r_h:'ترتيبك',
+  w_hd:'أهمية كل معيار (محسوبة من مقارناتك)',
+  ch_sc:'الدرجات النهائية',ch_rad:'نظرة عامة على الأداء',
+  rk_hd:'الترتيب الكامل',rec_hd:'الملخص والتوصية',
+  st_hd:'الحسابات خطوة بخطوة',show:'عرض',hide:'إخفاء',
+  ex_hd:'صدِّر تحليلك',ex_sub:'تقرير احترافي — جاهز للاستخدام الأكاديمي أو المهني',
+  xl_h:'ملف Excel',xl_p:'جميع المصفوفات والأوزان والحسابات والترتيب على أوراق منفصلة',
+  pdf_h:'تقرير PDF',pdf_p:'تقرير كامل مع رسوم بيانية وتوصية — جاهز للأطروحة',
+  restart:'تحليل جديد',
+  col_rk:'الترتيب',col_alt:'الخيار',col_sc:'الدرجة',col_dec:'النتيجة',
+  tag1:'الخيار الأمثل',tag2:'خيار قوي',tag3:'يستحق الدراسة',tag4:'أقل ترتيباً',
+  w_auto:'أهمية كل معيار (من مقارناتك):',w_man:'حدد أهمية كل معيار (يجب أن يجمع 100%):',
+  wok:'المجموع = {s}% ✓',werr:'المجموع = {s}% — يجب أن يساوي 100%',
+  cr_p:'أكمل الجدول للتحقق من التناسق',
+  cr_ok:'مقارناتك متسقة (CR ≤ 0.10) — الأوزان مؤكدة.',
+  cr_bad:'المقارنات غير متسقة (CR > 0.10) — انظر الاقتراحات أدناه.',
+  cr_fix_h:'ما يجب تغييره لتصحيح التناسق',
+  cr_curr:'حالياً:',cr_sugg:'غيِّر إلى:',cr_why:'هذا التعديل سيجعل مقارناتك أكثر منطقية.',
+  s1_l:'متساوٍ',s3_l:'معتدل',s5_l:'قوي',s7_l:'قوي جداً',s9_l:'متطرف',
+  s1_e:'كلاهما يهم بالقدر نفسه',s3_e:'السعر مقابل التسليم',s5_e:'السعر مقابل المرونة',s7_e:'السعر مقابل الدعم',s9_e:'السعر مقابل لون الشعار',
+  ip1:'الجودة / مستوى الخدمة',ip2:'الموثوقية / المرونة',ip3:'سرعة التسليم',ip4:'الطاقة / التغطية',
+  im1:'التكلفة / السعر',im2:'وقت التسليم / أيام الانتظار',im3:'معدل الأخطاء / العيوب',im4:'المخاطر / المسافة',
+  ts1:'اختيار المورد',ts2:'موقع المستودع',ts3:'مزود 3PL',ts4:'وسيلة النقل',ts5:'تقييم المخاطر',
+  tg1:'شراء سيارة',tg2:'وظيفة / تدريب',tg3:'إيجار شقة',tg4:'أداة برمجية',tg5:'اختيار جامعة',
+  ps:'الإعداد',pa:'تحديد الأوزان',pd:'تقييم الخيارات',pr:'النتائج',
+  e_empty:'يرجى ملء جميع الخلايا قبل المتابعة.',
+  e_wsum:'يجب أن تجمع الأوزان 100% (حالياً {s}%).',
+  e_zcol:'جميع قيم "{c}" صفر — أدخل أرقاماً حقيقية.',
+  e_meth:'يرجى اختيار طريقة أولاً.',
+  ahp_s1:'الخطوة 1 — الوسط الهندسي لكل صف:  GM_i = (a_i1 × a_i2 × … × a_in)^(1/n)',
+  ahp_s2:'الخطوة 2 — أوزان المعايير:  w_i = GM_i / Σ GM_i',
+  ahp_s3:'الخطوة 3 — مجموع الأعمدة الموزون (A3):  A3_i = Σ(a_ij × w_j)',
+  ahp_s4:'الخطوة 4 — فحص التناسق (A4):  A4_i = A3_i / w_i',
+  ahp_s5:'الخطوة 5 — القيمة الذاتية القصوى:  λmax = Σ(A4_i) / n',
+  ahp_s6:'الخطوة 6 — مؤشر التناسق:  CI = (λmax − n) / (n − 1)',
+  ahp_s7:'الخطوة 7 — نسبة التناسق:  CR = CI / RI(n)  →  مقبول إذا CR ≤ 0.10',
+  ahp_wsm1:'الخطوة 8 — تطبيع Min-Max لكل عمود (حسب الاتجاه)',
+  ahp_wsm2:'الخطوة 9 — الدرجة الموزونة:  score_i = Σ(مطبَّع_ij × w_j)  →  ترتيب تنازلي',
+  tp_s1:'الخطوة 1 — التطبيع الإقليدي:  r_ij = x_ij / √Σ(x_ij²)',
+  tp_s2:'الخطوة 2 — المصفوفة الموزونة:  v_ij = w_j × r_ij',
+  tp_s3:'الخطوة 3 — الحل المثالي (A+) والأسوأ (A−)',
+  tp_s4:'الخطوة 4 — المسافات:  D+_i = √Σ(v_ij−A+_j)²   D−_i = √Σ(v_ij−A−_j)²',
+  tp_s5:'الخطوة 5 — معامل القرب:  Ci = D− / (D+ + D−)  →  ترتيب تنازلي',
+  col_gm:'GM_i',col_wi:'w_i',col_wp:'النسبة',col_a3:'A3_i',col_a4:'A4_i',
+  col_raw:'القيمة',col_norm:'مطبَّعة',col_wscore:'الدرجة الموزونة',
+  col_ib:'المثالي A+',col_iw:'الأسوأ A−',col_dp:'D+',col_dm:'D−',col_ci:'القرب Ci',
+  accept:'✓ الأوزان مقبولة',reject:'✗ الأوزان مرفوضة — راجع',
+}};
+const t=(k,v={})=>{let s=T[S.lang][k]||T.en[k]||k;Object.keys(v).forEach(x=>{s=s.replace('{'+x+'}',v[x]);});return s;};
+
+// Templates
+const TPLS={
+  supplier:{title:'Supplier Selection',c:['Unit Price','Quality','Delivery Time','Reliability','Flexibility'],a:['Supplier A','Supplier B','Supplier C'],imp:['-','+','-','+','+']},
+  warehouse:{title:'Warehouse Location',c:['Land Cost','Market Proximity','Infrastructure','Labor Cost','Expansion'],a:['Location A','Location B','Location C'],imp:['-','+','+','-','+']},
+  '3pl':{title:'3PL Provider',c:['Cost','Service Level','IT Capability','Network','Experience'],a:['Provider A','Provider B','Provider C'],imp:['-','+','+','+','+']},
+  transport:{title:'Transport Mode',c:['Cost','Speed','Capacity','CO2 Emissions','Reliability'],a:['Road','Rail','Air'],imp:['-','+','+','-','+']},
+  risk:{title:'Risk Assessment',c:['Probability','Financial Impact','Detectability','Recovery Time','Strategic Impact'],a:['Risk A','Risk B','Risk C'],imp:['-','-','+','-','-']},
+  car:{title:'Car Purchase',c:['Price','Fuel Economy','Safety','Comfort','Looks'],a:['Toyota Camry','Honda Accord','Mazda 6'],imp:['-','+','+','+','+']},
+  internship:{title:'Job / Internship',c:['Salary','Learning','Commute','Culture','Brand'],a:['Company A','Company B','Company C'],imp:['+','+','-','+','+']},
+  apartment:{title:'Apartment Rental',c:['Rent','Size','Distance to Work','Noise','Amenities'],a:['Downtown','Suburb','City Studio'],imp:['-','+','-','-','+']},
+  software:{title:'Software Tool',c:['Cost','Features','Ease of Use','Support','Integration'],a:['Tool X','Tool Y','Tool Z'],imp:['-','+','+','+','+']},
+  university:{title:'University Choice',c:['Tuition','Ranking','Location','Campus Life','Alumni'],a:['Uni A','Uni B','Uni C'],imp:['-','+','+','+','+']}
+};
+
+// AHP constants
+const SV=[1,2,3,4,5,6,7,8,9,1/2,1/3,1/4,1/5,1/6,1/7,1/8,1/9];
+const SL=['1','2','3','4','5','6','7','8','9','1/2','1/3','1/4','1/5','1/6','1/7','1/8','1/9'];
+const RI=[0,0,0.58,0.90,1.12,1.24,1.32,1.41,1.45,1.49,1.51,1.54,1.56,1.57,1.59,1.60,1.61,1.62,1.63,1.64];
+const nSV=v=>{let bi=0,bd=Infinity;SV.forEach((sv,i)=>{const d=Math.abs(Math.log(v)-Math.log(sv));if(d<bd){bd=d;bi=i;}});return bi;};
+const ff=v=>v.toFixed(4);
+const ff6=v=>v.toFixed(6);
+const fmtFr=v=>{if(Math.abs(v-1)<0.005)return'1';if(v>1)return v.toFixed(2);return'1/'+Math.round(1/v);};
+
+// ═══════════════════════════ LANGUAGE ═══════════════════════════
+function setLang(l){
+  S.lang=l;
+  document.documentElement.lang=l;
+  document.documentElement.dir=l==='ar'?'rtl':'ltr';
+  document.querySelectorAll('.lb').forEach(b=>b.classList.toggle('on',b.textContent.trim().toLowerCase()===l));
+  document.querySelectorAll('[data-t]').forEach(el=>{const v=T[l][el.dataset.t]||T.en[el.dataset.t];if(v)el.textContent=v;});
+  document.querySelectorAll('[data-t-ph]').forEach(el=>{const v=T[l][el.dataset.tPh]||T.en[el.dataset.tPh];if(v)el.placeholder=v;});
+  buildTpls();
+  const cur=document.querySelector('.sc.on');
+  if(cur){
+    if(cur.id==='s-ahp'){buildSaaty();renderCR();}
+    if(cur.id==='s-data'){buildImpLeg();}
+    if(cur.id==='s-results'){buildRec();}
+  }
+}
+
+// ═══════════════════════════ NAVIGATION ═══════════════════════════
+function nav(id){
+  document.querySelectorAll('.sc').forEach(s=>s.classList.remove('on'));
+  document.getElementById('s-'+id)?.classList.add('on');
+  window.scrollTo({top:0,behavior:'instant'});
+  renderPills(id);
+}
+
+function getSteps(){
+  const s=[{k:'ps',sc:'setup'}];
+  if(S.method==='ahp'||S.method==='both')s.push({k:'pa',sc:'ahp'});
+  s.push({k:'pd',sc:'data'});
+  s.push({k:'pr',sc:'results'});
+  return s;
+}
+
+function renderPills(cur){
+  const steps=getSteps(),scs=steps.map(s=>s.sc),ci=scs.indexOf(cur);
+  ['setup','ahp','data','results'].forEach(sc=>{
+    const el=document.getElementById('pills-'+sc);if(!el)return;
+    el.innerHTML='';
+    steps.forEach((s,i)=>{
+      const done=i<ci,now=i===ci;
+      const d=document.createElement('div');d.className='pill';
+      const dc=now?'now':done?'done':'';
+      const lc=now?'now':done?'done':'';
+      const ic=done?'<svg width="10" height="10" fill="none" stroke="white" stroke-width="3" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>':i+1;
+      d.innerHTML=`<div class="pdot ${dc}">${ic}</div><span class="plbl ${lc}">${t(s.k)}</span>`;
+      el.appendChild(d);
+      if(i<steps.length-1){const c=document.createElement('div');c.className='pline';el.appendChild(c);}
+    });
+  });
+}
+
+// ═══════════════════════════ WELCOME ═══════════════════════════
+function pickM(m){
+  S.method=m;
+  document.querySelectorAll('.mc').forEach(c=>c.classList.remove('sel'));
+  document.getElementById('mc-'+m)?.classList.add('sel');
+}
+
+function goHow(){
+  if(!S.method){
+    // Shake the method cards to signal the user must pick one
+    document.querySelectorAll('.mc').forEach(mc=>{
+      mc.style.animation='none';
+      mc.offsetHeight; // reflow
+      mc.style.animation='shakeCard .4s ease';
+    });
+    showToast(t('e_meth'),'err');
+    return;
+  }
+  buildHowBody();nav('how');
+}
+
+function buildHowBody(){
+  const el=document.getElementById('how-body');
+  const hl=document.getElementById('how-h');
+  const names={ahp:t('m_ahp_h'),topsis:t('m_top_h'),both:t('m_both_h')};
+  hl.textContent=names[S.method]||names.both;
+  const l=S.lang;
+  const box=(h,p)=>`<div class="abox"><h4>${h}</h4><p>${p}</p></div>`;
+  const steps=its=>`<div class="hgrid">${its.map((it,i)=>`<div class="hstep"><div class="sn">${i+1}</div><h4>${it[0]}</h4><p>${it[1]}</p></div>`).join('')}</div>`;
+  let html='';
+  if(S.method==='ahp'||S.method==='both'){
+    html+=box(
+      l==='ar'?'كيف تعمل طريقة AHP؟':l==='fr'?"Comment fonctionne l'AHP ?":'How does AHP work?',
+      l==='ar'?'تخيل أنك تختار موردًا. السعر مهم، لكن الجودة مهمة أيضاً. وكذلك وقت التسليم. لكن أيها أهم؟ AHP يطلب منك المقارنة اثنين اثنين مثل مسابقة، ومن إجاباتك يحسب بالضبط كم نسبة من القرار تستحق كل عامل.':
+      l==='fr'?"Imaginez que vous choisissez un fournisseur. Le prix est important, la qualité aussi, et les délais aussi. Mais lequel est le plus important ? L'AHP vous demande de les comparer deux par deux, comme un tournoi, et calcule précisément le pourcentage que mérite chaque facteur dans votre décision.":
+      "Imagine you're choosing a supplier. Price matters, but so does quality — and delivery time too. But which one matters most? AHP asks you to compare them two at a time, like a tournament bracket, and from your answers it precisely calculates what percentage of the decision each factor deserves."
+    );
+    html+=steps(
+      l==='ar'?[
+        ['قارن كل زوج','لكل زوج من العوامل: أيهما أهم وبكم؟ المقياس من 1 (متساوٍ) إلى 9 (مهم جداً)'],
+        ['احسب الوزن','يحسب النظام تلقائياً النسبة المئوية التي يستحقها كل عامل — باستخدام الوسط الهندسي'],
+        ['تحقق من التناسق','النظام يتحقق من منطق إجاباتك: إذا A>B وB>C، يجب أن A>C'],
+        ['رتِّب خياراتك','أدخل قيم خياراتك، سيتم تطبيع كل عمود ثم ضربه بوزنه لإنتاج النتيجة النهائية']
+      ]:l==='fr'?[
+        ['Comparez chaque paire','Pour chaque paire de facteurs : lequel est plus important et de combien ? Échelle 1 (égal) à 9 (extrêmement)'],
+        ['Calculez les poids','Le système calcule automatiquement le pourcentage que mérite chaque facteur'],
+        ['Vérifiez la cohérence','Le système vérifie votre logique : si A>B et B>C, alors A>C'],
+        ['Classez vos options','Entrez vos données, chaque colonne sera normalisée puis multipliée par son poids']
+      ]:[
+        ['Compare each pair','For each pair of factors: which matters more and by how much? Scale 1 (equal) to 9 (extremely more important)'],
+        ['Get the weights','The system automatically calculates the exact percentage each factor deserves'],
+        ['Check consistency','The system verifies your logic: if A>B and B>C, then A must be >C'],
+        ['Rank your options','Enter your data — each column is normalized then multiplied by its weight to produce the final score']
+      ]
+    );
+  }
+  if(S.method==='both')html+='<div class="div"></div>';
+  if(S.method==='topsis'||S.method==='both'){
+    html+=box(
+      l==='ar'?'كيف تعمل طريقة TOPSIS؟':l==='fr'?'Comment fonctionne TOPSIS ?':'How does TOPSIS work?',
+      l==='ar'?'تخيل الخيار المثالي: أفضل جودة وأقل سعر وأسرع تسليم. وتخيل أسوأ خيار. TOPSIS يقيس لكل خيار حقيقي: كم هو قريب من المثالي؟ وكم هو بعيد عن الأسوأ؟ الفائز هو الأقرب للمثالي والأبعد عن الأسوأ معاً. على عكس التطبيع البسيط، يحافظ TOPSIS على الفوارق النسبية بين الأرقام.':
+      l==='fr'?"Imaginez une option parfaite : meilleure qualité, prix le plus bas, livraison la plus rapide. Et la pire option. TOPSIS mesure pour chaque vraie option : à quelle distance de l'idéal ? Et du pire ? Le gagnant est le plus proche de l'idéal ET le plus éloigné du pire. Contrairement à la normalisation simple, TOPSIS préserve les écarts proportionnels entre les valeurs.":
+      "Imagine the perfect option: best quality, lowest price, fastest delivery. And the worst possible option. TOPSIS measures for each real option: how close to perfect? And how far from worst? The winner is closest to perfect AND farthest from worst simultaneously. Unlike simple ranking, TOPSIS preserves the proportional gaps between numerical values."
+    );
+    html+=steps(
+      l==='ar'?[
+        ['طبِّع القيم','كل عمود يُقسَّم على جذره الإقليدي — يجعل الوحدات المختلفة قابلة للمقارنة'],
+        ['حدد الاتجاه (+/−)','(+) للعوامل التي تريد قيمة أعلى، (−) للعوامل التي تريد قيمة أقل'],
+        ['حدد المثالي والأسوأ','المثالي A+ = أفضل قيمة في كل عمود / الأسوأ A− = أسوأ قيمة'],
+        ['احسب القرب النهائي','Ci = D− / (D+ + D−)  →  بين 0 و1  →  الأعلى يفوز']
+      ]:l==='fr'?[
+        ['Normalisez les valeurs','Chaque colonne divisée par sa norme euclidienne — rend comparables les unités différentes'],
+        ['Définissez la direction (+/−)','(+) pour les facteurs où haut = mieux, (−) où bas = mieux'],
+        ['Trouvez l\'idéal et le pire','Idéal A+ = meilleure valeur de chaque colonne / Pire A− = pire valeur'],
+        ['Calculez la proximité finale','Ci = D− / (D+ + D−)  →  entre 0 et 1  →  Le plus haut gagne']
+      ]:[
+        ['Normalize the values','Each column divided by its Euclidean norm — makes different units comparable'],
+        ['Set the direction (+/−)','(+) for factors where high is better, (−) where low is better'],
+        ['Find the best and worst','Best A+ = best value in each column / Worst A− = worst value'],
+        ['Calculate the final score','Ci = D− / (D+ + D−)  →  between 0 and 1  →  Highest wins']
+      ]
+    );
+  }
+  el.innerHTML=html;
+}
+
+// ═══════════════════════════ SETUP ═══════════════════════════
+function buildSelects(){
+  const nc=document.getElementById('sel-nc'),na=document.getElementById('sel-na');
+  if(!nc||!na)return;
+  nc.innerHTML='';for(let i=2;i<=20;i++){const o=document.createElement('option');o.value=i;o.textContent=i;if(i===S.nC)o.selected=true;nc.appendChild(o);}
+  na.innerHTML='';for(let i=2;i<=10;i++){const o=document.createElement('option');o.value=i;o.textContent=i;if(i===S.nA)o.selected=true;na.appendChild(o);}
+}
+function onNC(){S.nC=parseInt(document.getElementById('sel-nc').value);document.getElementById('warn-nc').style.display=(S.method!=='topsis'&&S.nC>=8)?'flex':'none';buildNG();}
+function onNA(){S.nA=parseInt(document.getElementById('sel-na').value);buildNG();}
+function buildNG(){
+  const cg=document.getElementById('gcn'),ag=document.getElementById('gan');
+  if(!cg||!ag)return;
+  cg.innerHTML='';ag.innerHTML='';
+  for(let i=0;i<S.nC;i++){const w=document.createElement('div');w.className='niw';const lb=document.createElement('span');lb.className='nilbl';lb.textContent='C'+(i+1);const inp=document.createElement('input');inp.type='text';inp.id='cn-'+i;inp.value=S.criteria[i]||(S.lang==='ar'?`معيار ${i+1}`:S.lang==='fr'?`Critère ${i+1}`:`Criterion ${i+1}`);w.appendChild(lb);w.appendChild(inp);cg.appendChild(w);}
+  for(let i=0;i<S.nA;i++){const w=document.createElement('div');w.className='niw';const lb=document.createElement('span');lb.className='nilbl';lb.textContent='A'+(i+1);const inp=document.createElement('input');inp.type='text';inp.id='an-'+i;inp.value=S.alts[i]||(S.lang==='ar'?`خيار ${i+1}`:S.lang==='fr'?`Option ${i+1}`:`Option ${i+1}`);w.appendChild(lb);w.appendChild(inp);ag.appendChild(w);}
+}
+function buildTpls(){
+  const row=document.getElementById('tplrow');if(!row)return;
+  row.innerHTML='';
+  [['supplier','ts1'],['warehouse','ts2'],['3pl','ts3'],['transport','ts4'],['risk','ts5'],['car','tg1'],['internship','tg2'],['apartment','tg3'],['software','tg4'],['university','tg5']].forEach(([k,tk])=>{
+    const btn=document.createElement('button');btn.className='tchip';btn.textContent=t(tk);
+    btn.onclick=()=>loadTpl(k,btn);row.appendChild(btn);
+  });
+}
+function loadTpl(k,btn){
+  const tpl=TPLS[k];if(!tpl)return;
+  document.querySelectorAll('.tchip').forEach(c=>c.classList.remove('on'));btn.classList.add('on');
+  document.getElementById('inp-title').value=tpl.title;
+  S.nC=tpl.c.length;S.nA=tpl.a.length;
+  S.criteria=[...tpl.c];S.alts=[...tpl.a];S.impacts=[...tpl.imp];
+  document.getElementById('sel-nc').value=S.nC;document.getElementById('sel-na').value=S.nA;
+  document.getElementById('warn-nc').style.display=(S.method!=='topsis'&&S.nC>=8)?'flex':'none';
+  buildNG();
+  tpl.c.forEach((c,i)=>{const el=document.getElementById('cn-'+i);if(el)el.value=c;});
+  tpl.a.forEach((a,i)=>{const el=document.getElementById('an-'+i);if(el)el.value=a;});
+}
+function readNames(){
+  S.nC=parseInt(document.getElementById('sel-nc').value);
+  S.nA=parseInt(document.getElementById('sel-na').value);
+  S.title=(document.getElementById('inp-title')?.value||'').trim()||'Decision Analysis';
+  S.criteria=[];S.alts=[];
+  for(let i=0;i<S.nC;i++)S.criteria.push((document.getElementById('cn-'+i)?.value||'').trim()||`C${i+1}`);
+  for(let i=0;i<S.nA;i++)S.alts.push((document.getElementById('an-'+i)?.value||'').trim()||`A${i+1}`);
+}
+function goSetup(){
+  readNames();
+  if(S.method==='ahp'||S.method==='both'){buildAHP();nav('ahp');}
+  else{buildDataTbl();nav('data');}
+}
+
+// ═══════════════════════════ AHP ═══════════════════════════
+function buildAHP(){
+  const n=S.nC;
+  if(S.M.length!==n||S.M.some(r=>r.length!==n)){
+    S.M=Array.from({length:n},(_,i)=>Array.from({length:n},(_,j)=>1));
+  }
+  renderAHPMx();buildSaaty();
+}
+
+function buildSaaty(){
+  const g=document.getElementById('saaty-grid');if(!g)return;
+  g.innerHTML=[['1','s1_l','s1_e'],['3','s3_l','s3_e'],['5','s5_l','s5_e'],['7','s7_l','s7_e'],['9','s9_l','s9_e']]
+    .map(([v,ml,me])=>`<div class="sc-it"><div class="sc-v">${v}</div><div class="sc-m">${t(ml)}</div><div class="sc-e">${S.lang==='ar'?'مثال: ':S.lang==='fr'?'Ex: ':'e.g. '}${t(me)}</div></div>`).join('');
+}
+
+function renderAHPMx(){
+  const n=S.nC;
+  const wrap=document.getElementById('ahp-mx');if(!wrap)return;
+  const sh=c=>c.length>11?c.slice(0,10)+'…':c;
+  let html=`<table class="ahptbl"><thead><tr><th></th>`;
+  S.criteria.forEach(c=>html+=`<th title="${c}">${sh(c)}</th>`);
+  html+=`</tr></thead><tbody>`;
+  for(let i=0;i<n;i++){
+    html+=`<tr><th style="background:var(--bg2);color:var(--tx2);padding:7px 10px;font-size:9.5px;text-align:left;font-weight:800;white-space:nowrap;border:1px solid var(--bd)" title="${S.criteria[i]}">${sh(S.criteria[i])}</th>`;
+    for(let j=0;j<n;j++){
+      if(i===j){html+=`<td class="cdiag">1</td>`;}
+      else if(i>j){html+=`<td class="cauto" id="aa-${i}-${j}">—</td>`;}
+      else{
+        const ci=nSV(S.M[i][j]||1);
+        html+=`<td style="padding:3px"><select class="ahpsel" id="as-${i}-${j}" onchange="onA(${i},${j})">`;
+        SL.forEach((lb,k)=>{
+          let dir;
+          if(k===0)dir=S.lang==='ar'?'(متساوٍ)':S.lang==='fr'?'(Égal)':'(Equal)';
+          else if(k<=8)dir=`→ ${sh(S.criteria[i])}`;
+          else dir=`→ ${sh(S.criteria[j])}`;
+          html+=`<option value="${k}" ${k===ci?'selected':''}>${lb} ${dir}</option>`;
+        });
+        html+=`</select></td>`;
+      }
+    }
+    html+=`</tr>`;
+  }
+  html+=`</tbody></table>`;
+  wrap.innerHTML=html;
+  updInv();renderCR();
+}
+
+function onA(i,j){
+  const sel=document.getElementById(`as-${i}-${j}`);if(!sel)return;
+  const v=SV[parseInt(sel.value)];
+  S.M[i][j]=v;S.M[j][i]=1/v;
+  updInv();renderCR();
+}
+function updInv(){
+  for(let i=1;i<S.nC;i++)for(let j=0;j<i;j++){
+    const el=document.getElementById(`aa-${i}-${j}`);
+    if(el)el.textContent=fmtFr(S.M[i][j]);
+  }
+}
+
+// ─── CORE AHP CALCULATION ───
+function calcAHP(){
+  const n=S.nC,M=S.M;
+  // Step 1: Geometric mean of each row
+  const GM=Array.from({length:n},(_,i)=>{
+    let p=1;for(let j=0;j<n;j++)p*=M[i][j];return Math.pow(p,1/n);
+  });
+  // Step 2: Weights
+  const sumGM=GM.reduce((a,b)=>a+b,0)||1;
+  const W=GM.map(g=>g/sumGM);
+  // Step 3: A3 = A × W
+  const A3=Array.from({length:n},(_,i)=>{let s=0;for(let j=0;j<n;j++)s+=M[i][j]*W[j];return s;});
+  // Step 4: A4 = A3 / W
+  const A4=A3.map((a,i)=>a/(W[i]||1e-10));
+  // Step 5: λmax
+  const lmax=A4.reduce((a,b)=>a+b,0)/n;
+  // Step 6: CI
+  const CI=n>1?(lmax-n)/(n-1):0;
+  // Step 7: CR
+  const ri=RI[n-1]||1.49;
+  const CR=ri>0?CI/ri:0;
+  S.GM=GM;S.W=W;S.A3=A3;S.A4=A4;S.lmax=lmax;S.CI=CI;S.CR=CR;
+  return{GM,W,A3,A4,lmax,CI,CR};
+}
+
+function renderCR(){
+  const area=document.getElementById('crwrap');if(!area)return;
+  const{CR}=calcAHP();
+  const cls=CR<0.001?'pend':CR<=0.1?'ok':'bad';
+  const icon=CR<0.001?'◎':CR<=0.1?'✓':'✗';
+  const lbl=CR<0.001?t('cr_p'):CR<=0.1?t('cr_ok'):t('cr_bad');
+  let html=`<div class="crbox ${cls}"><div class="crico ${cls}">${icon}</div><div style="flex:1"><div class="crnum">CR = ${CR.toFixed(4)}</div><div class="crlbl">${lbl}</div></div></div>`;
+  if(CR>0.1){
+    html+=buildCRFix();
+    setTimeout(()=>{
+      document.querySelectorAll('.ahpsel').forEach(s=>s.classList.remove('flagged'));
+      getCRFix().slice(0,3).forEach(f=>{const el=document.getElementById(`as-${f.i}-${f.j}`);if(el)el.classList.add('flagged');});
+    },0);
+  }else document.querySelectorAll('.ahpsel').forEach(s=>s.classList.remove('flagged'));
+  area.innerHTML=html;
+}
+
+function getCRFix(){
+  const W=S.W||[];
+  return Array.from({length:S.nC},(_, i)=>Array.from({length:S.nC},(_,j)=>i<j?{i,j,actual:S.M[i][j],ideal:W[i]/(W[j]||1e-10),logDiff:Math.abs(Math.log(S.M[i][j])-Math.log(W[i]/(W[j]||1e-10)))}:null)).flat().filter(Boolean).sort((a,b)=>b.logDiff-a.logDiff);
+}
+
+function buildCRFix(){
+  const fixes=getCRFix().slice(0,3);if(!fixes.length)return'';
+  let html=`<div class="crtips"><div class="crth"><svg width="11" height="11"><use href="#ico-alert"/></svg>${t('cr_fix_h')}</div>`;
+  fixes.forEach(f=>{
+    const al=fmtFr(f.actual);
+    const sl=SL[nSV(f.ideal)];
+    html+=`<div class="fixrow"><strong>${S.criteria[f.i]} ↔ ${S.criteria[f.j]}</strong><br>${t('cr_curr')} <span class="tgc">${al}</span> → ${t('cr_sugg')} <span class="tgs">${sl}</span><br><span style="font-size:11px;color:var(--tx3)">${t('cr_why')}</span></div>`;
+  });
+  return html+'</div>';
+}
+
+function procAHP(){
+  const{CR}=calcAHP();
+  if(CR>0.1&&!confirm(S.lang==='ar'?`نسبة التناسق (${CR.toFixed(4)}) أعلى من 0.10. هل تريد المتابعة؟`:S.lang==='fr'?`CR = ${CR.toFixed(4)} > 0.10. Continuer quand même ?`:`CR = ${CR.toFixed(4)} > 0.10. Continue anyway?`))return;
+  S.weights=[...S.W];
+  buildDataTbl();nav('data');
+}
+
+// ═══════════════════════════ DATA TABLE ═══════════════════════════
+function buildImpLeg(){
+  const pl=document.getElementById('ip-list'),ml=document.getElementById('im-list');
+  if(!pl||!ml)return;
+  pl.innerHTML=['ip1','ip2','ip3','ip4'].map(k=>`<li>${t(k)}</li>`).join('');
+  ml.innerHTML=['im1','im2','im3','im4'].map(k=>`<li>${t(k)}</li>`).join('');
+}
+
+function buildDataTbl(){
+  buildImpLeg();
+  if(!S.impacts.length||S.impacts.length!==S.nC)S.impacts=Array(S.nC).fill('+');
+  if(!S.raw.length||S.raw.length!==S.nA||(S.raw[0]&&S.raw[0].length!==S.nC))
+    S.raw=Array.from({length:S.nA},()=>Array(S.nC).fill(''));
+
+  // Weight area
+  const wa=document.getElementById('warea');
+  const hasAHP=(S.method==='both'||S.method==='ahp')&&S.W&&S.W.length===S.nC;
+  if(hasAHP){
+    S.weights=[...S.W];
+    wa.innerHTML=`<div class="bnr bo" style="margin-bottom:0"><svg width="13" height="13"><use href="#ico-check"/></svg><div><strong>${t('w_auto')}</strong><br><span style="font-size:11.5px">${S.criteria.map((c,i)=>`${c}: <b>${(S.weights[i]*100).toFixed(1)}%</b>`).join(' &nbsp;|&nbsp; ')}</span></div></div>`;
+  }else{
+    if(!S.weights.length||S.weights.length!==S.nC)S.weights=Array(S.nC).fill(parseFloat((1/S.nC).toFixed(6)));
+    wa.innerHTML=`<div style="margin-bottom:11px"><div class="flbl">${t('w_man')}</div><div class="ng">${S.criteria.map((c,i)=>`<div><label style="font-size:10px;font-weight:700;color:var(--tx3);display:block;margin-bottom:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${c}">${c}</label><input type="number" id="wi-${i}" value="${(S.weights[i]*100).toFixed(1)}" step="0.1" min="0" max="100" onchange="updW()"/></div>`).join('')}</div><div id="wmsg" style="margin-top:6px;font-size:12px"></div></div>`;
+    updW();
+  }
+
+  const tbl=document.getElementById('dtbl');if(!tbl)return;
+  const altL=S.lang==='ar'?'الخيار':S.lang==='fr'?'Option':'Option';
+  const dirL=S.lang==='ar'?'الاتجاه':S.lang==='fr'?'Direction':'Direction';
+  let html=`<thead><tr><th>${altL}</th>`;
+  S.criteria.forEach(c=>html+=`<th title="${c}">${c.length>12?c.slice(0,11)+'…':c}</th>`);
+  html+=`</tr><tr class="dimp"><td style="text-align:left;padding:5px 8px;font-size:9.5px;font-weight:800;color:var(--tx3);text-transform:uppercase">${dirL}</td>`;
+  S.criteria.forEach((c,j)=>html+=`<td><select class="impsel" id="imp-${j}" onchange="S.impacts[${j}]=this.value"><option value="+" ${S.impacts[j]==='+'?'selected':''}>+ MAX</option><option value="-" ${S.impacts[j]==='-'?'selected':''}>− MIN</option></select></td>`);
+  html+=`</tr></thead><tbody>`;
+  S.alts.forEach((a,i)=>{
+    html+=`<tr><td style="font-weight:700;text-align:left;padding:6px 8px;white-space:nowrap;color:var(--tx)">${a}</td>`;
+    S.criteria.forEach((c,j)=>{
+      const v=Array.isArray(S.raw[i])&&S.raw[i][j]!==undefined&&S.raw[i][j]!==''?S.raw[i][j]:'';
+      html+=`<td><input type="number" class="minp" id="mx-${i}-${j}" value="${v}" placeholder="—" step="any" oninput="clrErr()"/></td>`;
+    });
+    html+=`</tr>`;
+  });
+  tbl.innerHTML=html+'</tbody>';
+}
+
+function updW(){
+  let sum=0;
+  for(let i=0;i<S.nC;i++){const el=document.getElementById(`wi-${i}`);sum+=parseFloat(el?.value||0);}
+  const msg=document.getElementById('wmsg');if(!msg)return;
+  const ok=Math.abs(sum-100)<0.5;
+  msg.style.color=ok?'var(--ok)':'var(--wn)';
+  msg.textContent=ok?t('wok',{s:sum.toFixed(1)}):t('werr',{s:sum.toFixed(1)});
+}
+
+function clrErr(){
+  document.getElementById('derr').style.display='none';
+  document.querySelectorAll('.minp.err').forEach(e=>e.classList.remove('err'));
+}
+
+function dataBack(){nav(S.method==='both'||S.method==='ahp'?'ahp':'setup');}
+
+// ═══════════════════════════ READ & VALIDATE ═══════════════════════════
+function readData(){
+  S.impacts=[];S.raw=[];
+  for(let j=0;j<S.nC;j++){const sel=document.getElementById(`imp-${j}`);S.impacts.push(sel?sel.value:'+');}
+  const hasAHP=(S.method==='both'||S.method==='ahp')&&S.W&&S.W.length===S.nC;
+  if(!hasAHP){
+    S.weights=[];
+    for(let j=0;j<S.nC;j++){const el=document.getElementById(`wi-${j}`);S.weights.push((parseFloat(el?.value||0)||0)/100);}
+  }
+  for(let i=0;i<S.nA;i++){
+    const row=[];
+    for(let j=0;j<S.nC;j++){const el=document.getElementById(`mx-${i}-${j}`);row.push(el?parseFloat(el.value):NaN);}
+    S.raw.push(row);
+  }
+}
+
+function validateData(){
+  for(let i=0;i<S.nA;i++)for(let j=0;j<S.nC;j++)if(isNaN(S.raw[i][j]))document.getElementById(`mx-${i}-${j}`)?.classList.add('err');
+  if(S.raw.some(r=>r.some(v=>isNaN(v)))){showDE(t('e_empty'));return false;}
+  const wSum=S.weights.reduce((a,b)=>a+b,0);
+  if(Math.abs(wSum-1)>0.02){showDE(t('e_wsum',{s:(wSum*100).toFixed(1)}));return false;}
+  // Note: a column of all-zeros is mathematically safe — the Euclidean norm fallback
+  // already handles it with `|| 1` and WSM normalization returns 1 for all-equal columns.
+  return true;
+}
+function showDE(msg){const el=document.getElementById('derr'),m=document.getElementById('derr-msg');if(el&&m){el.style.display='flex';m.textContent=msg;}}
+
+// ═══════════════════════════ CALCULATIONS ═══════════════════════════
+function doCalc(){
+  readData();
+  if(!validateData())return;
+  if(S.method==='ahp')runWSM();
+  else runTOPSIS();
+  buildResults();nav('results');
+}
+
+// ── AHP STANDALONE: Min-Max Weighted Sum Model ──
+// After weights are computed, rank alternatives by:
+// 1. For each criterion, normalize values between 0 and 1:
+//    (+) => (x - min) / (max - min)
+//    (−) => (max - x) / (max - min)
+// 2. Multiply each normalized value by criterion weight
+// 3. Sum across criteria → final score
+// 4. Rank descending
+function runWSM(){
+  const n=S.nA,m=S.nC,X=S.raw,w=S.weights,imp=S.impacts;
+  // Compute min/max per column
+  const colMin=Array(m).fill(Infinity),colMax=Array(m).fill(-Infinity);
+  for(let j=0;j<m;j++)for(let i=0;i<n;i++){if(X[i][j]<colMin[j])colMin[j]=X[i][j];if(X[i][j]>colMax[j])colMax[j]=X[i][j];}
+  // Normalize
+  const norm=X.map(row=>row.map((v,j)=>{
+    const range=colMax[j]-colMin[j];
+    if(range===0)return 1; // all equal → all get full score
+    return imp[j]==='+'?(v-colMin[j])/range:(colMax[j]-v)/range;
+  }));
+  // Weighted score
+  const scores=norm.map(row=>row.reduce((sum,v,j)=>sum+v*w[j],0));
+  const rankings=scores.map((sc,i)=>({idx:i,name:S.alts[i],score:sc})).sort((a,b)=>b.score-a.score);
+  S.R={method:'wsm',rankings,norm,wNorm:[],iBest:[],iWorst:[],dPlus:[],dMinus:[],closeness:[],wsmNorm:norm,wsmScores:scores,colMin,colMax};
+}
+
+// ── TOPSIS: Euclidean Normalization ──
+function runTOPSIS(){
+  const n=S.nA,m=S.nC,X=S.raw,w=S.weights,imp=S.impacts;
+  // Step 1: Euclidean normalization
+  const colN=Array(m).fill(0);
+  for(let j=0;j<m;j++)for(let i=0;i<n;i++)colN[j]+=X[i][j]*X[i][j];
+  for(let j=0;j<m;j++)colN[j]=Math.sqrt(colN[j])||1;
+  const norm=X.map(row=>row.map((v,j)=>v/colN[j]));
+  // Step 2: Weighted
+  const wNorm=norm.map(row=>row.map((v,j)=>v*w[j]));
+  // Step 3: Ideal
+  const iBest=Array(m).fill(0),iWorst=Array(m).fill(0);
+  for(let j=0;j<m;j++){
+    const col=wNorm.map(r=>r[j]);
+    iBest[j]=imp[j]==='+'?Math.max(...col):Math.min(...col);
+    iWorst[j]=imp[j]==='+'?Math.min(...col):Math.max(...col);
+  }
+  // Step 4: Distances
+  const dPlus=Array(n).fill(0),dMinus=Array(n).fill(0);
+  for(let i=0;i<n;i++){
+    for(let j=0;j<m;j++){dPlus[i]+=(wNorm[i][j]-iBest[j])**2;dMinus[i]+=(wNorm[i][j]-iWorst[j])**2;}
+    dPlus[i]=Math.sqrt(dPlus[i]);dMinus[i]=Math.sqrt(dMinus[i]);
+  }
+  // Step 5: Closeness
+  const closeness=Array(n).fill(0).map((_,i)=>{const d=dPlus[i]+dMinus[i];return d>0?dMinus[i]/d:0;});
+  const rankings=closeness.map((c,i)=>({idx:i,name:S.alts[i],score:c})).sort((a,b)=>b.score-a.score);
+  S.R={method:'topsis',rankings,norm,wNorm,iBest,iWorst,dPlus,dMinus,closeness,wsmNorm:[],wsmScores:[]};
+}
+
+// ═══════════════════════════ RESULTS ═══════════════════════════
+function buildResults(){
+  document.getElementById('r-sub').textContent=S.title;
+  const ahpSec=document.getElementById('ahp-wsec');
+  if(ahpSec)ahpSec.style.display=(S.method==='ahp'||S.method==='both')?'block':'none';
+  if(S.method==='ahp'||S.method==='both')buildWDisp();
+  buildPodium();buildRkTbl();buildCharts();buildRec();
+  const sb=document.getElementById('stbody'),sbtn=document.getElementById('stbtn');
+  if(sb){sb.style.display='none';delete sb.dataset.built;}
+  if(sbtn)sbtn.textContent=t('show');
+}
+
+function buildWDisp(){
+  const el=document.getElementById('wdisp'),cr=document.getElementById('cr-resdisplay');
+  if(!el)return;
+  el.innerHTML=S.W.map((w,i)=>`<div class="wcard"><div class="wlbl" title="${S.criteria[i]}">${S.criteria[i]}</div><div class="wpct">${(w*100).toFixed(1)}%</div><div class="wbar"><div class="wfill" style="width:${Math.min(100,w*100).toFixed(1)}%"></div></div></div>`).join('');
+  if(cr){const cls=S.CR<=0.1?'ok':'bad';const icon=S.CR<=0.1?'✓':'✗';cr.innerHTML=`<div class="crbox ${cls}" style="margin-top:11px"><div class="crico ${cls}">${icon}</div><div><div class="crnum">CR = ${S.CR.toFixed(4)}</div><div class="crlbl">${S.CR<=0.1?t('cr_ok'):t('cr_bad')}</div></div></div>`;}
+}
+
+function buildPodium(){
+  const wrap=document.getElementById('podarea');if(!wrap)return;
+  const r=S.R.rankings;if(!r.length){wrap.innerHTML='';return;}
+  const slots=[];
+  if(r.length>=2)slots.push({item:r[1],cls:'pod2',lbl:'2'});
+  slots.push({item:r[0],cls:'pod1',lbl:'1'});
+  if(r.length>=3)slots.push({item:r[2],cls:'pod3',lbl:'3'});
+  wrap.innerHTML=`<div class="podwrap">${slots.map(s=>`<div class="pod ${s.cls}"><div class="pod-blk">${s.lbl}</div><div class="pod-name" title="${s.item.name}">${s.item.name}</div><div class="pod-sc">${s.item.score.toFixed(4)}</div></div>`).join('')}</div>`;
+}
+
+function buildRkTbl(){
+  const tbl=document.getElementById('rktbl');if(!tbl)return;
+  const r=S.R.rankings;const mx=r[0]?.score||1;
+  tbl.innerHTML=`<thead><tr><th style="width:42px">${t('col_rk')}</th><th>${t('col_alt')}</th><th>${t('col_sc')}</th><th>${t('col_dec')}</th></tr></thead>
+  <tbody>${r.map((item,i)=>{
+    const rb=i===0?'rb1':i===1?'rb2':i===2?'rb3':'rbn';
+    const tag=i===0?`<span class="dtag dt1">${t('tag1')}</span>`:i===1?`<span class="dtag dt2">${t('tag2')}</span>`:i===2?`<span class="dtag dt3">${t('tag3')}</span>`:`<span class="dtag dt4">${t('tag4')}</span>`;
+    return`<tr><td style="text-align:center"><span class="rb ${rb}">${i+1}</span></td><td style="font-weight:700;color:var(--tx)">${item.name}</td><td><div class="srow"><div class="sbar" style="width:${Math.round(item.score/mx*130)}px"></div><span class="snum">${item.score.toFixed(4)}</span></div></td><td>${tag}</td></tr>`;
+  }).join('')}</tbody>`;
+}
+
+function buildCharts(){
+  const r=S.R.rankings;if(!r.length)return;
+  const pal=['#D4A843','#4A9EE0','#2ECC71','#E87040','#9B59B6','#1ABC9C','#E74C3C','#3498DB'];
+  // Bar chart
+  const bCtx=document.getElementById('barChart')?.getContext('2d');
+  if(bCtx){
+    if(BC)BC.destroy();
+    BC=new Chart(bCtx,{type:'bar',
+      data:{labels:r.map(x=>x.name),datasets:[{data:r.map(x=>x.score),backgroundColor:r.map((_,i)=>pal[i%pal.length]),borderRadius:5,borderWidth:0}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+        scales:{y:{beginAtZero:true,max:1,grid:{color:'rgba(255,255,255,.05)'},ticks:{color:'#6B7F99',font:{family:'Plus Jakarta Sans',size:10}}},
+          x:{grid:{display:false},ticks:{color:'#9BAEC4',font:{family:'Plus Jakarta Sans',size:11,weight:'700'}}}}}});
+  }
+  // Radar — 0-100 relative scale, direction-aware
+  const radCtx=document.getElementById('radChart')?.getContext('2d');
+  if(radCtx&&S.raw.length){
+    if(RC)RC.destroy();
+    const ds=S.alts.map((a,i)=>({
+      label:a,
+      data:S.criteria.map((_,j)=>{
+        const col=S.raw.map(row=>row[j]),mn=Math.min(...col),mx=Math.max(...col),v=S.raw[i][j];
+        if(mx===mn)return 50;
+        return S.impacts[j]==='+'?((v-mn)/(mx-mn))*100:((mx-v)/(mx-mn))*100;
+      }),
+      borderColor:pal[i%pal.length],backgroundColor:pal[i%pal.length]+'22',borderWidth:2,pointRadius:3
+    }));
+    RC=new Chart(radCtx,{type:'radar',data:{labels:S.criteria,datasets:ds},
+      options:{responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{position:'bottom',labels:{color:'#9BAEC4',font:{family:'Plus Jakarta Sans',size:11},boxWidth:11}},
+          tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${Math.round(c.raw)}%`}}},
+        scales:{r:{min:0,max:100,ticks:{display:false},grid:{color:'rgba(255,255,255,.07)'},pointLabels:{color:'#9BAEC4',font:{family:'Plus Jakarta Sans',size:11,weight:'700'}}}}}});
+  }
+}
+
+// ═══════════════════════════ RECOMMENDATION ═══════════════════════════
+function buildRec(){
+  const el=document.getElementById('recbody');if(!el)return;
+  const r=S.R.rankings;if(!r.length){el.innerHTML='<p>—</p>';return;}
+  const l=S.lang;
+  const winner=r[0],second=r[1];
+  const gap=second?winner.score-second.score:0;
+  const conf=gap>0.15?'high':gap>0.05?'medium':'low';
+  let parts=[];
+  // Para 1 — core result
+  const m=S.method==='both'?'AHP-TOPSIS':S.method==='ahp'?'AHP (Weighted Score)':'TOPSIS';
+  const p1={en:`Based on the ${m} analysis — ${S.nA} options evaluated across ${S.nC} criteria — <strong>${winner.name}</strong> is the recommended choice with a score of <strong>${winner.score.toFixed(4)}</strong>.${second?` The margin over ${second.name} (2nd) is ${gap.toFixed(4)}.`:''}`,fr:`Sur la base de l'analyse ${m} — ${S.nA} options évaluées sur ${S.nC} critères — <strong>${winner.name}</strong> est le choix recommandé avec un score de <strong>${winner.score.toFixed(4)}</strong>.${second?` L'écart sur ${second.name} (2ème) : ${gap.toFixed(4)}.`:''}`,ar:`استناداً إلى تحليل ${m} لـ ${S.nA} خيارات عبر ${S.nC} معايير — <strong>${winner.name}</strong> هو الخيار الأمثل بدرجة <strong>${winner.score.toFixed(4)}</strong>.${second?` الفارق عن ${second.name} (2): ${gap.toFixed(4)}.`:''}`};
+  parts.push(`<p>${p1[l]||p1.en}</p>`);
+  // Para 2 — confidence
+  const cfg={high:{en:`The gap is substantial (${(gap*100).toFixed(1)} percentage points) — this is a clear, confident recommendation.`,fr:`L'écart est substantiel (${(gap*100).toFixed(1)} pp) — recommandation claire et solide.`,ar:`الفارق كبير (${(gap*100).toFixed(1)} نقطة مئوية) — توصية واضحة وقوية.`},medium:{en:`The margin is moderate. Both <strong>${winner.name}</strong> and <strong>${second?.name}</strong> are strong. Non-quantitative factors (relationships, strategic fit) may influence your final call.`,fr:`La marge est modérée. <strong>${winner.name}</strong> et <strong>${second?.name}</strong> sont tous deux solides. Des facteurs non quantitatifs peuvent orienter la décision finale.`,ar:`الفارق معتدل. كلا <strong>${winner.name}</strong> و<strong>${second?.name}</strong> قويان. عوامل غير كمية قد تؤثر في قرارك النهائي.`},low:{en:`The gap is very narrow — the top two options are nearly equal. The final decision may depend on factors not captured in this model.`,fr:`L'écart est très faible — les deux premières options sont presque équivalentes. La décision finale peut dépendre de facteurs hors modèle.`,ar:`الفارق ضيق جداً — الخياران الأولان متكافئان تقريباً. قد يعتمد القرار النهائي على عوامل خارج هذا النموذج.`}};
+  parts.push(`<p>${cfg[conf][l]||cfg[conf].en}</p>`);
+  // Para 3 — AHP key driver
+  if(S.W&&S.W.length){
+    const ti=S.W.indexOf(Math.max(...S.W));const tw=(S.W[ti]*100).toFixed(1);const tc=S.criteria[ti];
+    const hl={en:`Your comparisons identified <strong>${tc}</strong> as the most important factor (${tw}% of the decision). Its impact on the ranking is the primary driver of this result.`,fr:`Vos comparaisons ont identifié <strong>${tc}</strong> comme le critère le plus important (${tw}% de la décision). Son impact est le principal moteur du classement.`,ar:`مقارناتك حددت <strong>${tc}</strong> كأهم معيار (${tw}% من القرار). تأثيره هو المحرك الرئيسي للترتيب.`};
+    parts.push(`<p><div class="rechl">${hl[l]||hl.en}</div></p>`);
+  }
+  parts.push(`<div class="recdiv"></div>`);
+  const adv={en:'Before deciding: (1) verify the numbers you entered with people who know the options well, (2) consider whether any important factor was left out, (3) export the full report below to document and share your findings.',fr:'Avant de décider : (1) vérifiez les chiffres avec des personnes qui connaissent bien les options, (2) réfléchissez si un facteur important a été oublié, (3) exportez le rapport complet pour documenter et partager vos résultats.',ar:'قبل اتخاذ القرار: (1) تحقق من الأرقام مع أشخاص يعرفون الخيارات جيداً، (2) فكر إذا كان هناك معيار مهم لم يُذكر، (3) صدِّر التقرير الكامل لتوثيق ومشاركة نتائجك.'};
+  parts.push(`<p>${adv[l]||adv.en}</p>`);
+  el.innerHTML=parts.join('');
+}
+
+// ═══════════════════════════ STEPS ═══════════════════════════
+function toggleSt(){
+  const body=document.getElementById('stbody'),btn=document.getElementById('stbtn');if(!body)return;
+  const showing=body.style.display!=='none';
+  body.style.display=showing?'none':'block';
+  btn.textContent=showing?t('show'):t('hide');
+  if(!showing&&!body.dataset.built){buildSteps();body.dataset.built='1';}
+}
+
+function buildSteps(){
+  const el=document.getElementById('stbody');if(!el)return;
+  const ac=S.lang==='ar'?'المعيار/الخيار':S.lang==='fr'?'Critère/Option':'Criterion/Option';
+  const mk=(title,hdrs,rows,note)=>{
+    let h=`<div class="sth">${title}</div>`;
+    if(note)h+=`<div class="fblock">${note}</div>`;
+    h+=`<div style="overflow-x:auto"><table class="stbl"><thead><tr>`;
+    hdrs.forEach(hh=>h+=`<th>${hh}</th>`);
+    h+=`</tr></thead><tbody>`;
+    rows.forEach(row=>{h+='<tr>';row.forEach(cell=>h+=`<td>${cell}</td>`);h+='</tr>';});
+    return h+`</tbody></table></div>`;
+  };
+  let html='<div class="stbox">';
+
+  // ── AHP STEPS ──
+  if(S.method==='ahp'||S.method==='both'){
+    // S1: Pairwise matrix
+    html+=mk(t('ahp_s1'),
+      [ac,...S.criteria],
+      S.M.map((row,i)=>[S.criteria[i],...row.map(fmtFr)]),
+      `<b>GM_i</b> = (a_i1 × a_i2 × ... × a_in)^(1/n)`
+    );
+    // S2: Weights
+    const sumGM=S.GM.reduce((a,b)=>a+b,0);
+    html+=mk(t('ahp_s2'),
+      [ac,t('col_gm'),`÷ Σ(${sumGM.toFixed(4)})`,t('col_wp')],
+      S.criteria.map((c,i)=>[c,ff(S.GM[i]),ff(S.W[i]),`<strong>${(S.W[i]*100).toFixed(2)}%</strong>`]),
+      `<b>w_i</b> = GM_i / Σ GM = GM_i / ${sumGM.toFixed(4)}`
+    );
+    // S3: A3
+    html+=mk(t('ahp_s3'),
+      [ac,...S.criteria.map(c=>`× ${c.length>8?c.slice(0,7)+'…':c}`),t('col_a3')],
+      S.M.map((row,i)=>[S.criteria[i],...row.map((v,j)=>`${fmtFr(v)}×${ff(S.W[j])}`),`<strong>${ff(S.A3[i])}</strong>`]),
+      `<b>A3_i</b> = Σ(a_ij × w_j) = row of matrix A × weight vector W`
+    );
+    // S4: A4
+    html+=mk(t('ahp_s4'),
+      [ac,t('col_a3'),'÷ w_i',t('col_a4')],
+      S.criteria.map((c,i)=>[c,ff(S.A3[i]),`÷ ${ff(S.W[i])}`,`<strong>${ff(S.A4[i])}</strong>`]),
+      `<b>A4_i</b> = A3_i / w_i`
+    );
+    // S5-7: λmax, CI, CR
+    const n=S.nC,ri=RI[n-1]||1.49;
+    html+=`<div class="sth">${t('ahp_s5')}</div>
+    <div class="fblock"><b>λmax</b> = (${S.A4.map(ff).join(' + ')}) / ${n} = ${ff(S.A4.reduce((a,b)=>a+b,0))} / ${n} = <strong>${ff(S.lmax)}</strong></div>
+    <div class="sth">${t('ahp_s6')}</div>
+    <div class="fblock"><b>CI</b> = (${ff(S.lmax)} − ${n}) / (${n} − 1) = ${ff(S.lmax-n)} / ${n-1} = <strong>${ff(S.CI)}</strong></div>
+    <div class="sth">${t('ahp_s7')}</div>
+    <div class="fblock"><b>RI</b>(n=${n}) = ${ri} &nbsp;→&nbsp; <b>CR</b> = ${ff(S.CI)} / ${ri} = <strong>${ff(S.CR)}</strong> &nbsp;→&nbsp; <strong>${S.CR<=0.1?t('accept'):t('reject')}</strong></div>`;
+  }
+
+  // ── AHP WSM SCORING ──
+  if(S.method==='ahp'&&S.R.method==='wsm'){
+    html+='<div class="div"></div>';
+    // S8: Min-Max normalization
+    const norm=S.R.wsmNorm;
+    html+=mk(t('ahp_wsm1'),
+      [S.lang==='ar'?'الخيار':S.lang==='fr'?'Option':'Option',...S.criteria,S.lang==='ar'?'الاتجاه':S.lang==='fr'?'Direction':'Direction'],
+      S.raw.map((row,i)=>[S.alts[i],...row.map((v,j)=>{
+        const mn=S.R.colMin[j],mx=S.R.colMax[j];
+        return `${v} → ${ff(norm[i][j])}`;
+      }),S.impacts.join(' | ')]),
+      `<b>( + )</b>: norm = (x − min) / (max − min)   ●   <b>( − )</b>: norm = (max − x) / (max − min)`
+    );
+    // S9: Weighted scores
+    html+=mk(t('ahp_wsm2'),
+      [S.lang==='ar'?'الخيار':S.lang==='fr'?'Option':'Option',...S.criteria.map((c,j)=>`${c} (${(S.weights[j]*100).toFixed(0)}%)`),S.lang==='ar'?'المجموع':S.lang==='fr'?'Score':'Score'],
+      S.alts.map((a,i)=>{
+        const wscores=S.criteria.map((_,j)=>ff(norm[i][j]*S.weights[j]));
+        return[a,...wscores,`<strong>${ff(S.R.wsmScores[i])}</strong>`];
+      }),
+      `<b>score_i</b> = Σ(normalized_ij × w_j)`
+    );
+  }
+
+  // ── TOPSIS STEPS ──
+  if((S.method==='topsis'||S.method==='both')&&S.R.method==='topsis'){
+    if(S.method==='both')html+='<div class="div"></div>';
+    const{norm,wNorm,iBest,iWorst,dPlus,dMinus,closeness}=S.R;
+    const altC=S.lang==='ar'?'الخيار':S.lang==='fr'?'Option':'Option';
+    html+=mk(t('tp_s1'),[altC,...S.criteria],norm.map((row,i)=>[S.alts[i],...row.map(ff)]),`<b>r_ij</b> = x_ij / √Σ(x_ij²) — each column divided by its Euclidean norm`);
+    html+=mk(t('tp_s2'),[altC,...S.criteria.map((c,j)=>`${c.length>7?c.slice(0,6)+'…':c}×${ff(S.weights[j])}`)],wNorm.map((row,i)=>[S.alts[i],...row.map(ff)]),`<b>v_ij</b> = r_ij × w_j`);
+    html+=mk(t('tp_s3'),['',... S.criteria],[[`A+ (${t('col_ib')})`,...iBest.map(ff)],[`A− (${t('col_iw')})`,...iWorst.map(ff)]],`( + ): A+ = max, A− = min  ●  ( − ): A+ = min, A− = max`);
+    html+=mk(t('tp_s4'),[altC,...S.criteria.map((_,j)=>`(v−A+)²[${j+1}]`),t('col_dp'),t('col_dm')],
+      S.alts.map((a,i)=>[a,...wNorm[i].map((_,j)=>ff((wNorm[i][j]-iBest[j])**2)),ff(dPlus[i]),ff(dMinus[i])]),
+      `<b>D+_i</b> = √Σ(v_ij − A+_j)²   ●   <b>D−_i</b> = √Σ(v_ij − A−_j)²`
+    );
+    html+=mk(t('tp_s5'),[altC,t('col_dp'),t('col_dm'),'D+ + D−',`<strong>${t('col_ci')}</strong>`,'Rank'],
+      S.alts.map((a,i)=>{const rk=S.R.rankings.findIndex(rx=>rx.idx===i)+1;return[a,ff(dPlus[i]),ff(dMinus[i]),ff(dPlus[i]+dMinus[i]),`<strong>${ff(closeness[i])}</strong>`,rk];}),
+      `<b>Ci</b> = D− / (D+ + D−)  →  0 ≤ Ci ≤ 1  →  Rank descending (highest = best)`
+    );
+  }
+
+  html+='</div>';
+  el.innerHTML=html;
+}
+
+// ═══════════════════════════ EXCEL EXPORT ═══════════════════════════
+function doXL(){
+  if(typeof XLSX==='undefined'){showToast('Excel library unavailable','err');return;}
+  showToast(S.lang==='ar'?'جارٍ إنشاء Excel...':S.lang==='fr'?'Génération Excel...':'Generating Excel...');
+  setTimeout(()=>{
+    try{
+      const wb=XLSX.utils.book_new();
+      const mk=(data,cols)=>{const ws=XLSX.utils.aoa_to_sheet(data);if(cols)ws['!cols']=cols;return ws;};
+      // Sheet 1: Summary
+      const sumD=[['DECISION COMPASS — Report'],[''],
+        ['Decision',S.title],['Method',S.method.toUpperCase()],['Date',new Date().toLocaleDateString()],
+        ['Criteria count',S.nC],['Options count',S.nA],
+        [''],['CRITERIA',...S.criteria],['OPTIONS',...S.alts],
+        ...(S.W.length?[['AHP WEIGHTS',...S.W.map(w=>(w*100).toFixed(2)+'%')],
+          ['λmax',S.lmax.toFixed(6)],['CI',S.CI.toFixed(6)],['CR',S.CR.toFixed(4)],
+          ['Consistency',S.CR<=0.1?'ACCEPTED ✓':'REJECTED ✗']]:[[]])];
+      XLSX.utils.book_append_sheet(wb,mk(sumD,[{wch:22},...Array(Math.max(S.nC,S.nA)).fill({wch:18})]),'Summary');
+      // Sheet 2: AHP matrix + steps
+      if(S.method==='ahp'||S.method==='both'){
+        const ahpD=[['AHP Pairwise Matrix — Geometric Mean Method'],[''],
+          ['',... S.criteria],...S.M.map((row,i)=>[S.criteria[i],...row.map(v=>parseFloat(v.toFixed(6)))]),
+          [''],['','GM_i','w_i (decimal)','w_i (%)'],
+          ...S.criteria.map((c,i)=>[c,S.GM[i].toFixed(6),S.W[i].toFixed(6),(S.W[i]*100).toFixed(2)+'%']),
+          [''],['A3 row',...S.A3.map(a=>a.toFixed(6))],['A4 row',...S.A4.map(a=>a.toFixed(6))],
+          ['λmax',S.lmax.toFixed(6)],['CI',S.CI.toFixed(6)],['RI(n='+S.nC+')',RI[S.nC-1]||1.49],['CR',S.CR.toFixed(4)],['Decision',S.CR<=0.1?'ACCEPTED':'REJECTED']];
+        XLSX.utils.book_append_sheet(wb,mk(ahpD,[{wch:22},...Array(S.nC).fill({wch:16})]),'AHP');
+      }
+      // Sheet 3: Raw data
+      XLSX.utils.book_append_sheet(wb,mk([['Decision Matrix — Raw Input'],[''],
+        ['',... S.criteria],['Impact (+/−)',...S.impacts],['Weights (%)',...S.weights.map(w=>(w*100).toFixed(2)+'%')],[''],
+        ...S.raw.map((row,i)=>[S.alts[i],...row])],[{wch:22},...Array(S.nC).fill({wch:16})]),'Raw Data');
+      // Sheet 4: Calculations (WSM or TOPSIS)
+      if(S.R.method==='wsm'){
+        const norm=S.R.wsmNorm;
+        XLSX.utils.book_append_sheet(wb,mk([
+          ['AHP Weighted Sum Model — Calculations'],[''],
+          ['STEP 8 — Min-Max Normalization'],['Option',...S.criteria,'Direction'],
+          ...S.raw.map((row,i)=>[S.alts[i],...row.map((v,j)=>parseFloat(ff(norm[i][j]))),S.impacts.join('')]),
+          [''],['STEP 9 — Weighted Scores'],['Option',...S.criteria.map((c,j)=>`${c} × ${(S.weights[j]*100).toFixed(0)}%`),'FINAL SCORE'],
+          ...S.alts.map((a,i)=>[a,...S.criteria.map((_,j)=>parseFloat(ff(norm[i][j]*S.weights[j]))),parseFloat(ff(S.R.wsmScores[i]))])
+        ],[{wch:22},...Array(S.nC).fill({wch:16})]),'Calculations');
+      }else{
+        const{norm,wNorm,iBest,iWorst,dPlus,dMinus,closeness}=S.R;
+        XLSX.utils.book_append_sheet(wb,mk([
+          ['TOPSIS Calculations'],[''],
+          ['STEP 1 — Normalized'],['',... S.criteria],...norm.map((r,i)=>[S.alts[i],...r.map(v=>parseFloat(v.toFixed(6)))]),[''],
+          ['STEP 2 — Weighted Normalized'],['',... S.criteria],...wNorm.map((r,i)=>[S.alts[i],...r.map(v=>parseFloat(v.toFixed(6)))]),[''],
+          ['STEP 3 — Ideal'],['',... S.criteria],['A+ Best',...iBest.map(v=>parseFloat(v.toFixed(6)))],['A− Worst',...iWorst.map(v=>parseFloat(v.toFixed(6)))],[''],
+          ['STEPS 4-5'],['Option','D+','D−','D++D−','Score Ci','Rank'],
+          ...S.alts.map((a,i)=>{const rk=S.R.rankings.findIndex(rx=>rx.idx===i)+1;return[a,parseFloat(dPlus[i].toFixed(6)),parseFloat(dMinus[i].toFixed(6)),parseFloat((dPlus[i]+dMinus[i]).toFixed(6)),parseFloat(closeness[i].toFixed(6)),rk];})
+        ],[{wch:22},...Array(Math.max(S.nC,6)).fill({wch:16})]),'Calculations');
+      }
+      // Sheet 5: Ranking
+      XLSX.utils.book_append_sheet(wb,mk([['FINAL RANKING'],[''],
+        ['Rank','Option','Score','Result'],
+        ...S.R.rankings.map((item,i)=>[i+1,item.name,parseFloat(item.score.toFixed(6)),i===0?'★ Top Choice':i===1?'Strong Option':i===2?'Consider':'Lower Ranked'])
+      ],[{wch:8},{wch:28},{wch:16},{wch:18}]),'Ranking');
+      XLSX.writeFile(wb,(S.title||'Decision').replace(/\s+/g,'_')+'_Report.xlsx');
+    }catch(e){showToast('Error: '+e.message,'err');console.error(e);}
+  },100);
+}
+
+// ═══════════════════════════ PDF EXPORT WITH INFOGRAPHICS ═══════════════════════════
+function doPDF(){
+  if(typeof jspdf==='undefined'){showToast('PDF library unavailable','err');return;}
+  showToast(S.lang==='ar'?'جارٍ إنشاء PDF...':S.lang==='fr'?'Génération PDF...':'Generating PDF...');
+
+  // Fix 1 — Arabic PDF: jsPDF has no RTL/Arabic ligature support.
+  // We export using French labels when UI is in Arabic to keep the PDF readable.
+  // A banner in the PDF explains this to the reader.
+  const pdfLang = S.lang === 'ar' ? 'fr' : S.lang;
+  const pt = (k, v={}) => {
+    let s = T[pdfLang][k] || T.en[k] || k;
+    Object.keys(v).forEach(x => { s = s.replace('{'+x+'}', v[x]); });
+    return s;
+  };
+
+  // Fix 4 — Wide tables: switch to landscape if more than 7 criteria
+  const useLandscape = S.nC > 7;
+  const pageW = useLandscape ? 297 : 210;
+  const pageH = useLandscape ? 210 : 297;
+
+  setTimeout(()=>{
+    try{
+      const{jsPDF}=jspdf;
+      const doc=new jsPDF({orientation: useLandscape ? 'landscape' : 'portrait',unit:'mm',format:'a4'});
+      const mg=16, pw=pageW-2*mg; let y=mg;
+      const navy=[15,25,40],gold=[212,168,67],gray=[30,42,56],lGray=[248,249,250],muted=[107,122,153];
+      const chk=(n=18)=>{if(y+n>(pageH-12)){doc.addPage();y=mg;}};
+      const txt=(s,x,sy,sz=9,col=navy,bold=false)=>{doc.setFontSize(sz);doc.setFont('helvetica',bold?'bold':'normal');doc.setTextColor(...col);doc.text(s,x,sy);};
+      const sec=label=>{
+        chk(13);
+        doc.setFillColor(...navy);doc.rect(mg,y,pw,8,'F');
+        doc.setFillColor(...gold);doc.rect(mg,y+7,pw,1,'F');
+        txt(label.toUpperCase(),mg+4,y+5.5,8.5,[255,255,255],true);
+        y+=13;
+      };
+
+      // ─── COVER PAGE ───
+      doc.setFillColor(...navy);doc.rect(0,0,pageW,useLandscape?72:82,'F');
+      doc.setFillColor(...gold);doc.rect(0,useLandscape?69:79,pageW,3,'F');
+      txt('DECISION COMPASS',mg,30,23,[255,255,255],true);
+      txt('Structured Decision Analysis Report',mg,42,11,[220,190,130]);
+      txt(S.title||'Decision Analysis',mg,54,9,[160,175,200]);
+      txt(`Method: ${S.method.toUpperCase()}   |   ${S.nC} criteria   |   ${S.nA} options`,mg,63,9,[160,175,200]);
+      txt(`Generated: ${new Date().toLocaleDateString()}`,mg,71,9,[160,175,200]);
+      y = useLandscape ? 82 : 92;
+
+      // Fix 1 — Show Arabic notice banner in PDF when UI was in Arabic
+      if(S.lang === 'ar'){
+        chk(14);
+        doc.setFillColor(74,158,224,0.15);
+        doc.setFillColor(235,242,252);doc.rect(mg,y,pw,10,'F');
+        doc.setDrawColor(74,158,224);doc.rect(mg,y,pw,10,'S');
+        txt('Note: PDF exported in French — jsPDF does not support Arabic right-to-left text rendering.',mg+4,y+6.5,8,[30,80,160]);
+        y+=14;
+      }
+
+      // ─── EXECUTIVE SUMMARY ───
+      sec(pt('ex_hd')||'Executive Summary');
+      chk(30);
+      doc.autoTable({startY:y,head:[['Parameter','Value']],
+        body:[
+          ['Decision',S.title],
+          ['Method',S.method.toUpperCase()],
+          ['Criteria',S.nC],
+          ['Options',S.nA],
+          ['Winner',S.R.rankings[0]?.name||'—'],
+          ['Winner Score',S.R.rankings[0]?.score.toFixed(4)||'—'],
+          ...(S.W.length?[['CR (AHP)',S.CR.toFixed(4)+(S.CR<=0.1?' ✓':' ✗')],['λmax',S.lmax.toFixed(6)]]:[[]])
+        ],
+        margin:{left:mg,right:mg},styles:{font:'helvetica',fontSize:9,cellPadding:3},
+        headStyles:{fillColor:navy,textColor:[255,255,255]},alternateRowStyles:{fillColor:lGray},theme:'grid'});
+      y=doc.lastAutoTable.finalY+10;
+
+      // ─── INFOGRAPHIC: AHP WEIGHTS BAR CHART ───
+      if(S.W.length){
+        sec('Criterion Weights — Visual Overview');
+        chk(18+S.nC*11);
+        const barMaxW=Math.min(100, pw-80);
+        txt('Factor',mg,y,8,muted,true);txt('Weight',mg+90,y,8,muted,true);txt('Visual Bar',mg+118,y,8,muted,true);
+        y+=5;
+        S.criteria.forEach((c,i)=>{
+          chk(10);
+          const w=S.W[i];const pct=(w*100).toFixed(1);
+          if(i%2===0){doc.setFillColor(248,249,251);doc.rect(mg,y-3,pw,9,'F');}
+          txt(c.length>22?c.slice(0,21)+'…':c,mg+1,y+3,8,navy);
+          txt(pct+'%',mg+90,y+3,8.5,gold,true);
+          doc.setFillColor(220,225,235);doc.rect(mg+118,y,barMaxW,7,'F');
+          const barColors=[[212,168,67],[74,158,224],[46,204,113],[232,112,64],[155,89,182],[26,188,156]];
+          const bc=barColors[i%barColors.length];
+          doc.setFillColor(...bc);doc.rect(mg+118,y,w*barMaxW,7,'F');
+          if(w>0.08)txt(pct+'%',mg+120,y+5,7,[255,255,255],true);
+          y+=10;
+        });
+        y+=4;
+        const crColor=S.CR<=0.1?[46,204,113]:[232,112,64];
+        doc.setFillColor(...crColor.map(c=>Math.floor(c*0.15+240)));
+        doc.rect(mg,y,pw,9,'F');
+        doc.setDrawColor(...crColor);doc.rect(mg,y,pw,9,'S');
+        txt(`Consistency Ratio: CR = ${S.CR.toFixed(4)} — ${S.CR<=0.1?'ACCEPTED ✓':'NEEDS REVISION ✗'}`,mg+4,y+6,9,crColor,true);
+        y+=14;
+      }
+
+      // ─── INFOGRAPHIC: FINAL SCORES ───
+      sec('Final Scores — Visual Ranking');
+      chk(18+S.nA*13);
+      const barColors2=[[212,168,67],[74,158,224],[46,204,113],[232,112,64],[155,89,182],[26,188,156],[231,76,60],[52,152,219]];
+      const maxSc=S.R.rankings[0]?.score||1;
+      const maxBarW2=Math.min(115,pw-80);
+      txt('Option',mg,y,8,muted,true);txt('Score',mg+95,y,8,muted,true);txt('Visual Bar',mg+115,y,8,muted,true);
+      y+=5;
+      S.R.rankings.forEach((item,i)=>{
+        chk(12);
+        const medalCols=[[212,168,67],[140,150,168],[176,120,64]];
+        if(i<3){doc.setFillColor(...medalCols[i]);doc.circle(mg+3.5,y+4,3.5,'F');doc.setTextColor(255,255,255);doc.setFontSize(7);doc.setFont('helvetica','bold');doc.text(String(i+1),mg+2.2,y+5.5);}
+        else txt(String(i+1),mg+1.5,y+5.5,7,muted);
+        txt(item.name.length>18?item.name.slice(0,17)+'…':item.name,mg+10,y+5.5,9,navy);
+        txt(item.score.toFixed(4),mg+95,y+5.5,9,gold,true);
+        doc.setFillColor(220,225,235);doc.rect(mg+115,y,maxBarW2,8,'F');
+        const bc2=barColors2[i%barColors2.length];
+        const fillW=Math.max(2,maxBarW2*(item.score/maxSc));
+        doc.setFillColor(...bc2);doc.rect(mg+115,y,fillW,8,'F');
+        if(fillW>18)txt(item.score.toFixed(3),mg+117,y+5.5,7,[255,255,255],true);
+        y+=12;
+      });
+      y+=4;
+
+      // ─── AHP MATRIX ───
+      if(S.W.length){
+        sec('AHP — Pairwise Comparison Matrix & Weights');
+        chk(20);
+        // For wide matrices (many criteria), use smaller font
+        const matFontSize = S.nC > 9 ? 6.5 : S.nC > 6 ? 7.5 : 8.5;
+        doc.autoTable({startY:y,head:[['Criterion',...S.criteria]],
+          body:S.M.map((row,i)=>[S.criteria[i],...row.map(v=>fmtFr(v))]),
+          margin:{left:mg,right:mg},
+          styles:{font:'helvetica',fontSize:matFontSize,cellPadding:S.nC>10?1.5:2.5},
+          headStyles:{fillColor:navy,textColor:[255,255,255]},alternateRowStyles:{fillColor:lGray},theme:'grid'});
+        y=doc.lastAutoTable.finalY+5;
+        doc.autoTable({startY:y,head:[['Criterion','GM_i','Weight','Weight %']],
+          body:S.criteria.map((c,i)=>[c,S.GM[i].toFixed(6),S.W[i].toFixed(6),(S.W[i]*100).toFixed(2)+'%']),
+          margin:{left:mg,right:mg},styles:{font:'helvetica',fontSize:8.5,cellPadding:3},
+          headStyles:{fillColor:gray,textColor:[200,215,235]},alternateRowStyles:{fillColor:lGray},theme:'grid'});
+        y=doc.lastAutoTable.finalY+5;
+        const ri=RI[S.nC-1]||1.49;
+        const formulaColor=S.CR<=0.1?[26,180,80]:[220,80,64];
+        [`λmax = (${S.A4.map(a=>a.toFixed(4)).join(' + ')}) / ${S.nC} = ${S.lmax.toFixed(6)}`,
+         `CI = (λmax − n) / (n − 1) = ${S.CI.toFixed(6)}`,
+         `CR = CI / RI(${S.nC}) = ${S.CI.toFixed(6)} / ${ri} = ${S.CR.toFixed(4)} → ${S.CR<=0.1?'ACCEPTED ✓':'REJECTED ✗'}`
+        ].forEach(l=>{chk(7);txt(l,mg,y,8.5,formulaColor);y+=6;});
+        y+=4;
+      }
+
+      // ─── RAW DATA ───
+      sec('Decision Matrix — Raw Input Data');chk(20);
+      const rawFontSize = S.nC > 9 ? 6.5 : S.nC > 6 ? 7.5 : 8;
+      doc.autoTable({startY:y,head:[['',... S.criteria]],
+        body:[['Impact (+/−)',...S.impacts],['Weights (%)',...S.weights.map(w=>(w*100).toFixed(1)+'%')],...S.raw.map((row,i)=>[S.alts[i],...row])],
+        margin:{left:mg,right:mg},
+        styles:{font:'helvetica',fontSize:rawFontSize,cellPadding:S.nC>10?1.5:2.5,overflow:'linebreak'},
+        headStyles:{fillColor:navy,textColor:[255,255,255]},alternateRowStyles:{fillColor:lGray},theme:'grid'});
+      y=doc.lastAutoTable.finalY+8;
+
+      // ─── CALCULATIONS ───
+      sec('Detailed Calculations');
+      const calcFontSize = S.nC > 9 ? 6 : S.nC > 6 ? 7 : 7.5;
+      if(S.R.method==='wsm'){
+        const norm=S.R.wsmNorm;
+        chk(15);doc.setFont('helvetica','bold');doc.setFontSize(8.5);doc.setTextColor(...navy);
+        doc.text('Step 8 — Min-Max Normalization:  (+) = (x−min)/(max−min)   (−) = (max−x)/(max−min)',mg,y);y+=4;
+        doc.autoTable({startY:y,head:[['Option',...S.criteria,'+/−']],
+          body:S.raw.map((row,i)=>[S.alts[i],...row.map((v,j)=>`${v}→${ff(norm[i][j])}`),S.impacts.join('')]),
+          margin:{left:mg,right:mg},styles:{font:'helvetica',fontSize:calcFontSize,cellPadding:S.nC>10?1.5:2},
+          headStyles:{fillColor:gray,textColor:[200,215,235]},theme:'grid'});
+        y=doc.lastAutoTable.finalY+5;
+        chk(15);doc.setFont('helvetica','bold');doc.setFontSize(8.5);doc.setTextColor(...navy);
+        doc.text('Step 9 — Weighted Score:  score_i = Σ(normalized_ij × w_j)',mg,y);y+=4;
+        doc.autoTable({startY:y,head:[['Option',...S.criteria.map((c,j)=>`${c.slice(0,6)}×${(S.weights[j]*100).toFixed(0)}%`),'SCORE']],
+          body:S.alts.map((a,i)=>[a,...S.criteria.map((_,j)=>ff(norm[i][j]*S.weights[j])),`${ff(S.R.wsmScores[i])}`]),
+          margin:{left:mg,right:mg},styles:{font:'helvetica',fontSize:calcFontSize,cellPadding:S.nC>10?1.5:2},
+          headStyles:{fillColor:navy,textColor:[255,255,255]},theme:'grid'});
+        y=doc.lastAutoTable.finalY+8;
+      }else{
+        const{norm,wNorm,iBest,iWorst,dPlus,dMinus,closeness}=S.R;
+        const stps=[
+          {t:'Step 1 — Normalized Matrix (r_ij = x_ij / √Σx²)',h:['',... S.criteria],b:norm.map((r,i)=>[S.alts[i],...r.map(v=>v.toFixed(5))])},
+          {t:'Step 2 — Weighted Normalized (v_ij = w_j × r_ij)',h:['',... S.criteria],b:wNorm.map((r,i)=>[S.alts[i],...r.map(v=>v.toFixed(5))])},
+          {t:'Step 3 — Ideal Best (A+) & Worst (A−)',h:['',... S.criteria],b:[['A+: Best',...iBest.map(v=>v.toFixed(5))],['A−: Worst',...iWorst.map(v=>v.toFixed(5))]]},
+          {t:'Steps 4-5 — Distances & Closeness (Ci = D− / (D+ + D−))',h:['Option','D+','D−','Ci','Rank'],b:S.alts.map((a,i)=>{const rk=S.R.rankings.findIndex(rx=>rx.idx===i)+1;return[a,dPlus[i].toFixed(5),dMinus[i].toFixed(5),closeness[i].toFixed(5),rk];})}
+        ];
+        stps.forEach(stp=>{
+          chk(15);doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(...navy);doc.text(stp.t,mg,y);y+=4;
+          doc.autoTable({startY:y,head:[stp.h],body:stp.b,margin:{left:mg,right:mg},
+            styles:{font:'helvetica',fontSize:calcFontSize,cellPadding:S.nC>10?1.5:2},
+            headStyles:{fillColor:gray,textColor:[200,215,235]},theme:'grid'});
+          y=doc.lastAutoTable.finalY+5;
+        });
+      }
+
+      // ─── RECOMMENDATION ───
+      sec('Conclusion & Recommendation');chk(15);
+      const winner=S.R.rankings[0];const second=S.R.rankings[1];const gap=second?winner.score-second.score:0;
+      const lines=[
+        `Winner: ${winner.name} — Score: ${winner.score.toFixed(4)}`,
+        second?`Margin over ${second.name} (2nd place): ${gap.toFixed(4)} (${(gap*100).toFixed(1)}%)`:' ',
+        ' ',
+        S.W.length?`Most important criterion (AHP): ${S.criteria[S.W.indexOf(Math.max(...S.W))]} — Weight: ${(Math.max(...S.W)*100).toFixed(1)}%`:' ',
+        ' ',
+        'Recommendation: Verify all input data with relevant stakeholders before making a final decision.',
+        'This report serves as a quantitative decision-support tool and should be complemented with',
+        'qualitative judgment, strategic considerations, and operational experience.',
+      ];
+      doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(...navy);
+      lines.forEach(l=>{if(l&&l.trim()){chk(6);doc.text(l,mg,y);y+=5.5;}else y+=2.5;});
+
+      // ─── FOOTER on every page ───
+      const total=doc.internal.getNumberOfPages();
+      for(let p=1;p<=total;p++){
+        doc.setPage(p);
+        doc.setFillColor(248,249,250);doc.rect(0,pageH-10,pageW,10,'F');
+        doc.setDrawColor(200,210,225);doc.line(0,pageH-10,pageW,pageH-10);
+        doc.setFontSize(7.5);doc.setFont('helvetica','normal');doc.setTextColor(...muted);
+        doc.text('Decision Compass — Structured Decision Analysis Tool',mg,pageH-4);
+        doc.text(`Page ${p} / ${total}`,pageW-mg,pageH-4,'right');
+      }
+      const orient=useLandscape?'_landscape':'';
+      doc.save((S.title||'Decision').replace(/[\s/\\:*?"<>|]/g,'_')+orient+'_Report.pdf');
+    }catch(e){showToast('PDF error: '+e.message,'err');console.error(e);}
+  },150);
+}
+const TIPS={
+  title:{en:{h:'What decision are you making?',b:'Give your analysis a descriptive title. It will appear on all exported reports.',ex:'e.g.\n"Supplier Selection — Electronics Components Q2 2025"\n"Choosing my first apartment"\n"Selecting our logistics software"'},fr:{h:'Quelle décision ?',b:'Donnez un titre descriptif à votre analyse. Il figurera sur tous les rapports.',ex:'ex.\n"Sélection Fournisseur — Composants Électroniques T2 2025"\n"Choix de mon premier appartement"'},ar:{h:'ما قرارك؟',b:'أعطِ تحليلك عنواناً وصفياً. سيظهر على جميع التقارير.',ex:'مثال:\n"اختيار المورد — مكونات الإلكترونيات 2025"\n"اختيار أول شقة"'}},
+  nc:{en:{h:'How many factors?',b:'Factors (criteria) are the things you compare your options on.\n\n• 3–5: Easy and fast\n• 6–7: Good for important decisions\n• 8+: Takes more time — try grouping similar ones',ex:'For supplier selection:\nCost, Quality, Delivery, Reliability, Flexibility → 5 factors\n\nFor AHP, every added factor doubles the work.'},fr:{h:'Combien de critères ?',b:'Les critères sont ce sur quoi vous comparez vos options.\n\n• 3–5: Facile et rapide\n• 6–7: Bon pour les décisions importantes\n• 8+: Prend plus de temps — regroupez si possible',ex:'Pour la sélection fournisseur:\nCoût, Qualité, Délai, Fiabilité, Flexibilité → 5 critères'},ar:{h:'كم عدد المعايير؟',b:'المعايير هي ما تقارن خياراتك على أساسه.\n\n• 3-5: سهل وسريع\n• 6-7: جيد للقرارات المهمة\n• 8+: يستغرق وقتاً أطول — حاول التجميع',ex:'لاختيار المورد:\nالتكلفة، الجودة، التسليم، الموثوقية، المرونة → 5 معايير'}},
+  na:{en:{h:'How many options?',b:'Options (alternatives) are the choices you are deciding between. 2–6 is ideal. More than 8 becomes difficult to manage meaningfully.',ex:'e.g. "Supplier A", "Supplier B", "Supplier C"\nor real names: "AliCorp", "EuroVend", "LocalSource"'},fr:{h:"Combien d'options ?",b:"Les options sont les choix entre lesquels vous décidez. 2–6 est idéal.",ex:'ex. "Fournisseur A", "B", "C"\nou vrais noms: "AliCorp", "EuroVend"'},ar:{h:'كم عدد الخيارات؟',b:'الخيارات هي البدائل التي تقرر بينها. 2-6 مثالية.',ex:'مثال: "المورد A"، "المورد B"، "المورد C"'}},
+  cn:{en:{h:'Naming your factors',b:'Use short, clear names (1–3 words). Long names make tables unreadable.',ex:'Good:\n"Cost", "Quality", "Lead Time", "Reliability"\n\nAvoid:\n"The total cost including all transport and handling fees"'},fr:{h:'Nommer vos critères',b:'Noms courts et clairs (1-3 mots). Les noms longs rendent les tableaux illisibles.',ex:'Bien:\n"Coût", "Qualité", "Délai", "Fiabilité"'},ar:{h:'تسمية معاييرك',b:'أسماء قصيرة وواضحة (1-3 كلمات). الأسماء الطويلة تُصعِّب قراءة الجداول.',ex:'جيد:\n"التكلفة"، "الجودة"، "وقت التسليم"، "الموثوقية"'}},
+  an:{en:{h:'Naming your options',b:'Use real, identifiable names. It makes results and recommendations much more meaningful.',ex:'Instead of "Option 1" use:\n"Toyota Camry", "Honda Accord"\n"AliSupply Ltd", "EuroSource GmbH"'},fr:{h:'Nommer vos options',b:'Utilisez de vrais noms identifiables. Cela rend les résultats bien plus significatifs.',ex:'Plutôt que "Option 1" utilisez le vrai nom:\n"Toyota Camry", "Honda Accord"'},ar:{h:'تسمية خياراتك',b:'استخدم أسماء حقيقية. يجعل النتائج والتوصيات أكثر وضوحاً.',ex:'بدلاً من "خيار 1" استخدم:\n"تويوتا كامري"، "هوندا أكورد"'}}
+};
+function showTip(k){const d=TIPS[k]?.[S.lang]||TIPS[k]?.en;if(!d)return;document.getElementById('mh').textContent=d.h;document.getElementById('mb').innerHTML=`<p>${d.b.replace(/\n/g,'<br>')}</p>${d.ex?`<div class="mex">${d.ex}</div>`:''}`; document.getElementById('modal').classList.add('on');}
+function closeM(){document.getElementById('modal').classList.remove('on');}
+function mbg(e){if(e.target===document.getElementById('modal'))closeM();}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeM();});
+
+// ═══════════════════════════ TOAST ═══════════════════════════
+let ttmr=null;
+function showToast(msg,type=''){
+  const el=document.getElementById('toast');
+  el.textContent=msg;el.className=type?`show ${type}`:'show';
+  clearTimeout(ttmr);ttmr=setTimeout(()=>el.classList.remove('show'),3200);
+}
+
+// ═══════════════════════════ RESET ═══════════════════════════
+function restart(){
+  S.method='';S.nC=3;S.nA=3;S.criteria=[];S.alts=[];S.title='';
+  S.M=[];S.GM=[];S.W=[];S.A3=[];S.A4=[];S.lmax=0;S.CI=0;S.CR=0;
+  S.impacts=[];S.raw=[];S.weights=[];
+  S.R={method:'',rankings:[],norm:[],wNorm:[],iBest:[],iWorst:[],dPlus:[],dMinus:[],closeness:[],wsmNorm:[],wsmScores:[]};
+  if(BC){BC.destroy();BC=null;}if(RC){RC.destroy();RC=null;}
+  // Clear all method card selections — user must explicitly choose again
+  document.querySelectorAll('.mc').forEach(c=>c.classList.remove('sel'));
+  nav('welcome');
+}
+
+// ═══════════════════════════ INIT ═══════════════════════════
+document.addEventListener('DOMContentLoaded',()=>{
+  buildSelects();buildNG();buildTpls();buildSaaty();
+  pickM('both');setLang('en');
+});
+</script>
+</body>
+</html>
